@@ -1,28 +1,31 @@
-name: Build and Deploy
+name: Single Branch Build and Deploy
 
 on:
   push:
     branches:
-      main
+      - '**'
+      - '!gh-pages'
 
 jobs:
   build:
     if: ${{ github.repository_owner == 'johnarban' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout current branch
         uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '20.4.0'
+          node-version: '20'
+      
+      - name: Use Yarn 4
+        run: |
+          corepack enable
+          yarn set version 4.5.3
 
       - name: Yarn install
-        run: yarn install
+        run: yarn install --immutable
 
       - name: Lint
         run: yarn lint
@@ -30,9 +33,60 @@ jobs:
       - name: Build
         run: yarn build
 
+      - name: Check for draft flag
+        uses: sergeysova/jq-action@v2
+        id: draft
+        with:
+          cmd: cat package.json | jq -r '.draft // false'
+
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages-dir
+          fetch-depth: 1
+        continue-on-error: true
+
+      - name: Prepare deployment folder
+        id: prepare
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          echo "Current branch: ${BRANCH}"
+          
+          # Ensure directory exists (in case checkout failed/branch didn't exist)
+          mkdir -p gh-pages-dir
+          cd gh-pages-dir
+          
+          # Remove git metadata so we treat this as a plain directory of files
+          rm -rf .git
+          
+          echo "Deploying to ${BRANCH} folder."
+          echo "   Removing existing files..."
+          rm -rf $BRANCH
+          mkdir -p $BRANCH
+          echo "   Copying new files..."
+          cp -a ../dist/. $BRANCH/
+          
+          echo "Verifying contents:"
+          ls -la $BRANCH
+          
+          if [[ "$BRANCH" == "main" ]]; then
+            # we want to move it to the root for main branch deployments
+            echo "Moving contents to root for main branch deployment."
+            mv $BRANCH/* .
+            rm -rf $BRANCH
+          fi
+          
+          echo "Verifying deployment folder structure:"
+          tree -d .
+          
+
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
+        if: ${{ steps.draft.outputs.value == 'false' }}
         with:
           branch: gh-pages
-          folder: dist
+          folder: gh-pages-dir
           ssh-key: ${{ secrets.DEPLOY_KEY }}
+          clean: true
