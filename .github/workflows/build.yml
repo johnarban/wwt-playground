@@ -7,8 +7,16 @@ on:
 
 permissions: read-all
 
+  
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
   build:
+    if: ${{ github.repository_owner == 'johnarban' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -16,11 +24,13 @@ jobs:
         with:
           persist-credentials: false
           ref: ${{ github.event.pull_request.head.sha }}
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
     
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.4.0'
+          node-version: '20.x'
 
       - name: Yarn install
         run: yarn install
@@ -30,4 +40,3 @@ jobs:
 
       - name: Build
         run: yarn build
-
