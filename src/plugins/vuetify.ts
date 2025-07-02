@@ -1,10 +1,5 @@
-import { aliases, mdi } from 'vuetify/iconsets/mdi';
 import { createVuetify } from 'vuetify';
-
-// For test use. Do not include createVuetify()
-// see https://next.vuetifyjs.com/en/features/treeshaking/
-//import * as components from 'vuetify/components';
-//import * as directives from 'vuetify/directives';
+import { aliases, mdi } from 'vuetify/iconsets/mdi';
 
 // Translations provided by Vuetify
 import { en } from 'vuetify/locale';
@@ -31,6 +26,3 @@ export default createVuetify({
     defaultTheme: 'dark',
   },
 });
-
-// Export for test.
-//export { components, directives };

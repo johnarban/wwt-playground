@@ -130,11 +130,10 @@
       :style="cssVars"
       :class="['info-sheet', `info-sheet-${infoSheetLocation}`]"
       id="text-info-sheet"
-      hide-overlay
+      :scrim="false"
       persistent
       no-click-animation
       absolute
-      :scrim="false"
       location="bottom"
       v-model="showTextSheet"
       :transition="infoSheetTransition"
@@ -177,7 +176,7 @@
                   <v-col cols="4">
                       <v-chip
                         label
-                        outlined
+                        variant="outlined"
                       >
                         Pan
                       </v-chip>
@@ -190,7 +189,7 @@
                     <v-col cols="4">
                       <v-chip
                         label
-                        outlined
+                        variant="outlined"
                       >
                         Zoom
                       </v-chip>

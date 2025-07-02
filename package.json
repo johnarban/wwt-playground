@@ -1,6 +1,7 @@
 {
   "draft": true,
   "version": "0.0.0",
+  "type": "module",
   "dependencies": {
     "@cosmicds/vue-toolkit": "^0.5.2",
     "@fortawesome/fontawesome-svg-core": "^6.5.1",
@@ -8,32 +9,39 @@
     "@fortawesome/vue-fontawesome": "^3.0.5",
     "@mdi/font": "^7.4.47",
     "@wwtelescope/engine-pinia": "^0.9.0",
-    "pinia": "^2.1.7",
-    "vue": "^3.4.15",
-    "vuetify": "^3.4.11",
-    "webpack-plugin-vuetify": "^2.0.0"
+    "vue": "^3.5.13",
+    "vuetify": "^3.8.1"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^6.19.0",
-    "@typescript-eslint/parser": "^6.19.0",
-    "@typescript-eslint/typescript-estree": "^6.19.0",
-    "@vue/cli-plugin-eslint": "^5.0.8",
-    "@vue/cli-plugin-typescript": "^5.0.8",
-    "@vue/cli-service": "^5.0.8",
-    "@vue/compiler-sfc": "^3.4.15",
-    "@vue/eslint-config-typescript": "^12.0.0",
-    "eslint": "^8.56.0",
-    "eslint-plugin-vue": "^9.20.1",
+    "@tsconfig/node22": "^22.0.0",
+    "@types/node": "^22.9.0",
+    "@vitejs/plugin-vue": "^5.2.3",
+    "@vue/tsconfig": "^0.7.0",
+    "eslint": "^9.30.1",
+    "eslint-plugin-vue": "^10.2.0",
+    "eslint-plugin-vuetify": "^2.5.2",
     "less": "^4.2.0",
     "less-loader": "^12.0.0",
-    "typescript": "^5.3.3",
-    "webpack": "^5.89.0"
+    "npm-run-all2": "^7.0.2",
+    "pinia": "^2.1.7",
+    "rimraf": "^4.0.0",
+    "typescript": "~5.8.2",
+    "typescript-eslint": "^8.35.1",
+    "vite": "^6.2.2",
+    "vite-plugin-vuetify": "^2.1.1",
+    "vue-eslint-parser": "^10.2.0",
+    "vue-router": "^4.5.0",
+    "vue-tsc": "^2.2.8"
   },
   "scripts": {
-    "build": "vue-cli-service build",
+    "dev": "vite",
+    "build": "run-p type-check 'build-only {@}' --", 
+    "preview": "vite preview",
+    "build-only": "vite build",
+    "type-check": "vue-tsc --build --force --noEmit",
     "clean": "rimraf dist",
-    "lint": "vue-cli-service lint src --no-fix",
-    "serve": "vue-cli-service serve"
+    "lint": "eslint --no-fix --ignore-pattern .gitignore src",
+    "serve": "vite --host"
   },
   "name": "@cosmicds/wwt-playground"
 }
