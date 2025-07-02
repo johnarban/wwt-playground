@@ -6,15 +6,14 @@ import globals from 'globals';
 import typescriptEslint from 'typescript-eslint';
 import eslintPluginVuetify from 'eslint-plugin-vuetify';
 
-
 export default typescriptEslint.config(
   { ignores: ['**/dist'] },
-
-
+  
   {
     extends: [
       eslint.configs.recommended,
-      ...typescriptEslint.configs.recommended,
+      ...typescriptEslint.configs.strict,
+      ...typescriptEslint.configs.stylistic,
       // ...eslintPluginVue.configs['flat/essential'], // handle Vue specific rules in a separate block
     ],
     
@@ -64,6 +63,7 @@ export default typescriptEslint.config(
           modifiers: ["requiresQuotes"]
         }
       ],
+      "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": [
         "error", {
           "args": "all",
@@ -71,6 +71,8 @@ export default typescriptEslint.config(
           "varsIgnorePattern": "^_"
         }
       ],
+      
+      
       "@/semi": "error",
       "vue/multi-word-component-names": "off"
     },
@@ -80,11 +82,11 @@ export default typescriptEslint.config(
   // ESLint configuration for Vue3
   {
     files: ['**/*.vue'],
-    // @ts-expect-error: Vuetify
+    
+    // @ts-expect-error Vuetify ESLint config is not typed
     extends: [
-      ...eslintPluginVue.configs['flat/essential'],
-      ...eslintPluginVuetify.configs['flat/base'],
-      
+      ...eslintPluginVue.configs['flat/recommended'],
+      ...eslintPluginVuetify.configs['flat/recommended'],
     ],
     languageOptions: {
       parser: eslintVueParser,
@@ -98,6 +100,9 @@ export default typescriptEslint.config(
     
     rules: {
       'vue/multi-word-component-names': 'off',
+      'vue/html-self-closing': 'off',
+      'vue/require-default-prop': 'warn',
+      'vue/no-v-html': 'off',
     },
   }
 

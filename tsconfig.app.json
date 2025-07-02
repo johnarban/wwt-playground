@@ -1,6 +1,11 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
-  "include": ["env.d.ts", "src/**/*", "src/**/*.vue"],
+  "include": [
+    "env.d.ts", 
+    "src/**/*", 
+    "src/**/*.vue",
+    "src/**/*.json",
+  ],
   "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {
     "composite": true,
@@ -24,10 +29,11 @@
     "downlevelIteration": true,
     "experimentalDecorators": true,
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": false, // doesn't work for vue-tsc --build
+    "allowSyntheticDefaultImports": true, // doesn't work for vue-tsc --build
     "sourceMap": true,
     "outDir": "dist",
     "noImplicitAny": false,
+    "resolveJsonModule": true,
     // lib declaration overrides what is set by vue-tsconfig (es2020)
     "lib": [
       "dom",
