@@ -1,10 +1,10 @@
 // Utilities
-import { fileURLToPath, URL } from 'node:url'
-import Vue from '@vitejs/plugin-vue'
-import { defineConfig } from 'vite'
+import { fileURLToPath, URL } from 'node:url';
+import Vue from '@vitejs/plugin-vue';
+import { defineConfig } from 'vite';
 
 // Plugins
-import Vuetify, { transformAssetUrls } from 'vite-plugin-vuetify'
+import Vuetify, { transformAssetUrls } from 'vite-plugin-vuetify';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -46,4 +46,4 @@ export default defineConfig({
       },
     },
   },
-})
+});

@@ -319,7 +319,7 @@
   resolved "https://registry.yarnpkg.com/@kyvg/vue3-notification/-/vue3-notification-2.9.1.tgz#6c74e5c1723ead8a0a42f00d81c2b3a13eee2f96"
   integrity sha512-FsY8g25tQetr3etnarxHtCeNFKssH8sheFu13LyL2JJmOOel437QqKV5n4RBDDDTIo55iKgIVYXeojliXYdEhw==
 
-"@mdi/font@7.4.47", "@mdi/font@^7.4.47":
+"@mdi/font@^7.4.47":
   version "7.4.47"
   resolved "https://registry.yarnpkg.com/@mdi/font/-/font-7.4.47.tgz#2ae522867da3a5c88b738d54b403eb91471903af"
   integrity sha512-43MtGpd585SNzHZPcYowu/84Vz2a2g31TvPMTm9uTiCSWzaheQySUcSyUH/46fPnuPQWof2yd0pGBtzee/IQWw==
