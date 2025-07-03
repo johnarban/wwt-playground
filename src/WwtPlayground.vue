@@ -9,66 +9,28 @@
       <WorldWideTelescope
         :wwt-namespace="wwtNamespace"
       ></WorldWideTelescope>
-
+      
+      <LoadingModal :show="isLoading" />
 
       <!-- This contains the splash screen content -->
-
-      <v-overlay
-        id="splash-overlay"
-        :model-value="showSplashScreen"
-        absolute
-        opacity="0.6"
-        :style="cssVars"
+      <splash-screen
+        v-if="showSplashScreen"
+        title="WWT Playground"
+        :color="accentColor"
+        glow-color="white"
+        :css-vars="cssVars"
+        @close="closeSplashScreen"
       >
-        <div
-          id="splash-screen"
-          v-click-outside="closeSplashScreen"
-          :style="cssVars"
-        >
-          <font-awesome-icon
-            id="close-splash-button"
-            icon="xmark"
-            tabindex="0"
-            @click="closeSplashScreen"
-            @keyup.enter="closeSplashScreen"
-          />
-          <div id="splash-screen-text">
-            <p>Splash Screen Content</p>
+        <template #acknowledgements="slotProps">
+          <div :class="[...slotProps.classes, 'mb-2']">
+            This interactive brought to you by John Lewis, 
+            using tools developed by 
+            <a href="cosmicds.cfa.harvard.edu" target="_blank">CosmicDS</a> 
+            and <a href="worldwidetelescope.org" target="_blank">WorldWide Telescope</a>.<br>
           </div>
-          <div
-            id="splash-screen-acknowledgements"
-            class="small"
-          >
-            This Data Story is brought to you by <a
-              href="https://www.cosmicds.cfa.harvard.edu/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >Cosmic Data Stories</a> and <a
-              href="https://www.worldwidetelescope.org/home/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >WorldWide Telescope</a>.
-          
-            <div id="splash-screen-logos">
-              <credit-logos logo-size="5vmin" />
-            </div>
-          </div>
-        </div>
-      </v-overlay>
+        </template>
+      </splash-screen>
 
-      <transition name="fade">
-        <div
-          v-show="isLoading"
-          id="modal-loading"
-          class="modal"
-        >
-          <div class="container">
-            <div class="spinner"></div>
-            <p>Loading …</p>
-          </div>
-        </div>
-      </transition>
-    
 
       <!-- This block contains the elements (e.g. icon buttons displayed at/near the top of the screen -->
 
@@ -281,9 +243,16 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, nextTick } from "vue";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import { IconButton } from "@cosmicds/vue-toolkit";
+
 import { GotoRADecZoomParams, engineStore } from "@wwtelescope/engine-pinia";
 import { BackgroundImageset, skyBackgroundImagesets, supportsTouchscreen, blurActiveElement, useWWTKeyboardControls } from "@cosmicds/vue-toolkit";
 import { useDisplay } from "vuetify";
+// local components
+import LoadingModal from "./components/LoadingModal.vue";
+import SplashScreen from "./components/SplashScreen.vue";
+
 
 type SheetType = "text" | "video";
 type CameraParams = Omit<GotoRADecZoomParams, "instant">;
@@ -316,9 +285,12 @@ const backgroundImagesets = reactive<BackgroundImageset[]>([]);
 const sheet = ref<SheetType | null>(null);
 const layersLoaded = ref(false);
 const positionSet = ref(false);
-const accentColor = ref("#ffffff");
+const accentColor = ref("#235985");
 const buttonColor = ref("#ffffff");
 const tab = ref(0);
+
+import hyg from "./assets/hyg_proper_stars.json";
+console.log(`HYG Data Loaded with ${hyg.length} stars.`);
 
 onMounted(() => {
   store.waitForReady().then(async () => {
@@ -484,42 +456,6 @@ body {
   opacity: 0;
 }
 
-.modal {
-  position: absolute;
-  top: 0px;
-  left: 0px;
-  width: 100%;
-  height: 100%;
-  z-index: 100;
-  color: #fff;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-#modal-loading {
-  background-color: #000;
-  .container {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    .spinner {
-      background-image: url("https://projects.cosmicds.cfa.harvard.edu/cds-website/misc/lunar_loader.gif");
-      background-repeat: no-repeat;
-      background-size: contain;
-      width: 3rem;
-      height: 3rem;
-    }
-    p {
-      margin: 0 0 0 1rem;
-      padding: 0;
-      font-size: 150%;
-    }
-  }
-}
-
 #top-content {
   position: absolute;
   top: 1rem;
@@ -557,65 +493,6 @@ body {
   gap: 5px;
 }
 
-#splash-overlay {
-  position: fixed;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-#splash-screen {
-  color: #FFFFFF;
-  background-color: #000000;
-  display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-  align-content: center;
-  justify-content: space-around;
-
-  font-family: 'Highway Gothic Narrow', 'Roboto', sans-serif;
-  font-size: min(8vw, 7vh);
-
-  border-radius: 10%;
-  border: min(1.2vw, 0.9vh) solid var(--accent-color);
-  overflow: auto;
-  padding-top: 4rem;
-  padding-bottom: 1rem;
-
-  @media (max-width: 699px) {
-    max-height: 80vh;
-    max-width: 90vw;
-  }
-
-  @media (min-width: 700px) {
-    max-height: 85vh;
-    max-width: min(70vw, 800px);
-  }
-
-  div {
-    margin-inline: auto;
-    text-align: center;
-  }
-
-  .small {
-    font-size: var(--default-font-size);
-    font-weight: bold;
-  }
-
-  #close-splash-button {
-    position: absolute;
-    top: 0.5rem;
-    right: 1.75rem;
-    text-align: end;
-    color: var(--accent-color);
-    font-size: min(8vw, 5vh);
-
-    &:hover {
-      cursor: pointer;
-    }
-  }
-}
 
 // From Sara Soueidan (https://www.sarasoueidan.com/blog/focus-indicators/) & Erik Kroes (https://www.erikkroes.nl/blog/the-universal-focus-state/)
 :focus-visible,
@@ -756,5 +633,16 @@ video {
   .v-tabs:not(.v-tabs--vertical).v-tabs--right>.v-slide-group--is-overflowing.v-tabs-bar--is-mobile:not(.v-slide-group--has-affixes) .v-slide-group__next, .v-tabs:not(.v-tabs--vertical):not(.v-tabs--right)>.v-slide-group--is-overflowing.v-tabs-bar--is-mobile:not(.v-slide-group--has-affixes) .v-slide-group__prev {
     display: none;
   }
+}
+
+#marker-container {
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  contain: strict;
 }
 </style>

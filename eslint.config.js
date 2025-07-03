@@ -103,6 +103,7 @@ export default typescriptEslint.config(
       'vue/html-self-closing': 'off',
       'vue/require-default-prop': 'warn',
       'vue/no-v-html': 'off',
+      'vue/max-attributes-per-line': 'off',
     },
   }
 

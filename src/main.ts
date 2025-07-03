@@ -1,12 +1,14 @@
 import { createApp, type DirectiveBinding, type Plugin } from "vue";
-import { FundingAcknowledgement, IconButton, CreditLogos } from "@cosmicds/vue-toolkit";
+import { FundingAcknowledgement, CreditLogos } from "@cosmicds/vue-toolkit";
 import WwtPlayground from "./WwtPlayground.vue";
 
 import vuetify from "@/plugins/vuetify";
 
-import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+
 
 import { WWTComponent, wwtPinia } from "@wwtelescope/engine-pinia";
+
+
 
 import { library } from "@fortawesome/fontawesome-svg-core";
 import {
@@ -49,8 +51,6 @@ createApp(WwtPlayground, {
 
   // Components
   .component("WorldWideTelescope", WWTComponent)
-  .component('font-awesome-icon', FontAwesomeIcon)
-  .component('icon-button', IconButton)
   .component('funding-acknowledgement', FundingAcknowledgement)
   .component('credit-logos', CreditLogos)
 
