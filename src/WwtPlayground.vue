@@ -17,8 +17,8 @@
         v-if="showSplashScreen"
         title="WWT Playground"
         :color="accentColor"
+        text-color="#fff"
         glow-color="white"
-        :css-vars="cssVars"
         @close="closeSplashScreen"
       >
         <template #acknowledgements="slotProps">
@@ -105,138 +105,40 @@
 
       <!-- This dialog contains the informational content that is displayed when the book icon is clicked -->
 
-      <v-dialog
-        id="text-info-sheet"
-        v-model="showTextSheet"
-        :style="cssVars"
-        :class="['info-sheet', `info-sheet-${infoSheetLocation}`]"
-        :scrim="false"
-        persistent
-        no-click-animation
-        absolute
-        location="bottom"
-        :transition="infoSheetTransition"
+      <tab-sheet-drawer
+        v-model:show="showTextSheet"
+        :css-vars="cssVars"
+        :accent-color="accentColor"
+        :info-sheet-location="infoSheetLocation"
+        :info-sheet-transition="infoSheetTransition"
+        :info-sheet-width="infoSheetWidth"
+        :info-sheet-height="infoSheetHeight"
+        :info-text-height="infoTextHeight"
       >
-        <v-card height="100%">
-          <v-tabs
-            id="tabs"
-            v-model="tab"
-            height="32px"
-            :color="accentColor"
-            :slider-color="accentColor"
-            dense
-          >
-            <v-tab
-              class="info-tabs"
-              tabindex="0"
-            >
-              <h3>Information</h3>
-            </v-tab>
-            <v-tab
-              class="info-tabs"
-              tabindex="0"
-            >
-              <h3>Using WWT</h3>
-            </v-tab>
-          </v-tabs>
-          <font-awesome-icon
-            id="close-text-icon"
-            class="control-icon"
-            icon="times"
-            size="lg"
-            tabindex="0"
-            @click="showTextSheet = false"
-            @keyup.enter="showTextSheet = false"
-          ></font-awesome-icon>
-          <v-window
-            id="tab-items"
-            v-model="tab"
-            class="pb-2 no-bottom-border-radius"
-          >
-            <v-window-item>
-              <v-card class="no-bottom-border-radius scrollable">
-                <v-card-text class="info-text no-bottom-border-radius">
-                  Information goes here
-                  <v-spacer class="end-spacer"></v-spacer>
-                </v-card-text>
-              </v-card>
-            </v-window-item>
-            <v-window-item>
-              <v-card class="no-bottom-border-radius scrollable">
-                <v-card-text class="info-text no-bottom-border-radius">
-                  <v-container>
-                    <v-row align="center">
-                      <v-col cols="4">
-                        <v-chip
-                          label
-                          variant="outlined"
-                        >
-                          Pan
-                        </v-chip>
-                      </v-col>
-                      <v-col
-                        cols="8"
-                        class="pt-1"
-                      >
-                        <strong>{{ touchscreen ? "press + drag" : "click + drag" }}</strong>  {{ touchscreen ? ":" : "or" }}  <strong>{{ touchscreen ? ":" : "W-A-S-D" }}</strong> {{ touchscreen ? ":" : "keys" }}<br>
-                      </v-col>
-                    </v-row>
-                    <v-row align="center">
-                      <v-col cols="4">
-                        <v-chip
-                          label
-                          variant="outlined"
-                        >
-                          Zoom
-                        </v-chip>
-                      </v-col>
-                      <v-col
-                        cols="8"
-                        class="pt-1"
-                      >
-                        <strong>{{ touchscreen ? "pinch in and out" : "scroll in and out" }}</strong> {{ touchscreen ? ":" : "or" }} <strong>{{ touchscreen ? ":" : "I-O" }}</strong> {{ touchscreen ? ":" : "keys" }}<br>
-                      </v-col>
-                    </v-row>
-                    <v-row>
-                      <v-col cols="12">
-                        <div class="credits">
-                          <h3>Credits:</h3>
-                          <h4>
-                            <a
-                              href="https://www.cosmicds.cfa.harvard.edu/"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >CosmicDS</a> Vue Data Stories Team:
-                          </h4>
-                          John Lewis<br>
-                          Jon Carifio<br>
-                          Pat Udomprasert<br>
-                          Alyssa Goodman<br>
-                          Mary Dussault<br>
-                          Harry Houghton<br>
-                          Anna Nolin<br>
-                          Evaluator: Sue Sunbury<br>
-                          <br>
-                          <h4>WorldWide Telescope Team:</h4>
-                          Peter Williams<br>
-                          A. David Weigel<br>
-                          Jon Carifio<br>
-                        </div>
-                        <v-spacer class="end-spacer"></v-spacer>
-                      </v-col>
-                    </v-row>
-                    <v-row>
-                      <v-col>
-                        <funding-acknowledgement />
-                      </v-col>
-                    </v-row>
-                  </v-container>              
-                </v-card-text>
-              </v-card>
-            </v-window-item>
-          </v-window>
-        </v-card>
-      </v-dialog>
+        <sheet-tab title="Information">
+          Information goes here
+          <v-spacer class="end-spacer"></v-spacer>
+        </sheet-tab>
+        <sheet-tab title="Using WWT">
+          <v-container>
+            <WWTControlsGuide />
+            <v-row>
+              <v-col cols="12">
+                <div class="credits">
+                  <h3>Credits:</h3>
+                  John Lewis<br>
+                </div>
+                <v-spacer class="end-spacer"></v-spacer>
+              </v-col>
+            </v-row>
+            <v-row>
+              <v-col>
+                <funding-acknowledgement />
+              </v-col>
+            </v-row>
+          </v-container>
+        </sheet-tab>
+      </tab-sheet-drawer>
     </div>
   </v-app>
 </template>
@@ -252,6 +154,9 @@ import { useDisplay } from "vuetify";
 // local components
 import LoadingModal from "./components/LoadingModal.vue";
 import SplashScreen from "./components/SplashScreen.vue";
+import TabSheetDrawer from "./components/TabSheetDrawer.vue"; 
+import SheetTab from "./components/SheetTab.vue";
+import WWTControlsGuide from "./components/WWTControlsGuide.vue";
 
 
 type SheetType = "text" | "video";
@@ -265,6 +170,7 @@ const store = engineStore();
 
 useWWTKeyboardControls(store);
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const touchscreen = supportsTouchscreen();
 const { smAndDown } = useDisplay();
 
@@ -282,12 +188,11 @@ const props = withDefaults(defineProps<WwtPlaygroundProps>(), {
 const splash = new URLSearchParams(window.location.search).get("splash")?.toLowerCase() !== "false";
 const showSplashScreen = ref(splash);
 const backgroundImagesets = reactive<BackgroundImageset[]>([]);
-const sheet = ref<SheetType | null>(null);
+const sheet = ref<SheetType | null>('text');
 const layersLoaded = ref(false);
 const positionSet = ref(false);
 const accentColor = ref("#235985");
 const buttonColor = ref("#ffffff");
-const tab = ref(0);
 
 import hyg from "./assets/hyg_proper_stars.json";
 console.log(`HYG Data Loaded with ${hyg.length} stars.`);
@@ -423,7 +328,6 @@ body {
   width: var(--app-content-width);
   height: var(--app-content-height);
   overflow: hidden;
-
   transition: height 0.1s ease-in-out;
 }
 
@@ -544,95 +448,6 @@ video {
   overflow: hidden;
   padding: 0px;
   z-index: 10;
-}
-
-.info-sheet {
-  .v-overlay__content {
-    align-self: flex-end;
-    padding: 0;
-    margin: 0 !important;
-    max-width: 100% !important;
-    height: var(--info-sheet-height) !important;
-    width: var(--info-sheet-width) !important;
-  }
-
-  &.info-sheet-right .v-overlay__content {
-    position: absolute;
-    top: 0;
-    right: 0;
-    max-height: 100%;
-
-    & .v-card, & .v-card .v-window {
-      height: 100%;
-    }
-    
-    & .info-tabs h3 {
-      font-size: 10pt;
-    }
-  }
-
-  #tabs {
-    width: calc(100% - 3em);
-    align-self: left;
-  }
-
-  .info-text {
-    height: var(--info-text-height);
-    padding-bottom: 25px;
-  
-    & a {
-      text-decoration: none;
-    }
-  }
-  
-  .close-icon {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 15;
-  
-    &:hover {
-      cursor: pointer;
-    }
-  
-    &:focus {
-      color: white;
-      border: 2px solid white;
-    }
-  }
-  
-  .scrollable {
-    overflow-y: auto;
-  }
-  
-  #tab-items {
-    // padding-bottom: 2px !important;
-  
-    .v-card-text {
-      font-size: ~"max(14px, calc(0.7em + 0.3vw))";
-      padding-top: ~"max(2vw, 16px)";
-      padding-left: ~"max(4vw, 16px)";
-      padding-right: ~"max(4vw, 16px)";
-  
-      .end-spacer {
-        height: 25px;
-      }
-    }
-  
-  }
-  
-  #close-text-icon {
-    position: absolute;
-    top: 0.25em;
-    right: calc((3em - 0.6875em) / 3); // font-awesome-icons have width 0.6875em
-    color: white;
-  }
-
-  // This prevents the tabs from having some extra space to the left when the screen is small
-  // (around 400px or less)
-  .v-tabs:not(.v-tabs--vertical).v-tabs--right>.v-slide-group--is-overflowing.v-tabs-bar--is-mobile:not(.v-slide-group--has-affixes) .v-slide-group__next, .v-tabs:not(.v-tabs--vertical):not(.v-tabs--right)>.v-slide-group--is-overflowing.v-tabs-bar--is-mobile:not(.v-slide-group--has-affixes) .v-slide-group__prev {
-    display: none;
-  }
 }
 
 #marker-container {

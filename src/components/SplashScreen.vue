@@ -4,13 +4,11 @@
     :model-value="showSplashScreen"
     absolute
     opacity="0.6"
-    :style="props.cssVars"
   >
     <div
       id="splash-screen"
       v-click-outside="closeSplashScreen"
       class="space-background"
-      :style="props.cssVars"
     >
       <div
         id="close-splash-button"
