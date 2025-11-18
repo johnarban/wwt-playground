@@ -36,6 +36,9 @@
 
       <div id="top-content">
         <div id="left-buttons">
+          <wwt-hud
+            :store="store"
+          />
           <icon-button
             v-model="showTextSheet"
             fa-icon="book-open"
@@ -54,6 +57,17 @@
           </icon-button>
         </div>
         <div id="center-buttons">
+          <v-select
+            v-model="backgroundImageset"
+            :items="backgroundImagesets.map((iset) => { return {title: iset.displayName, value: iset}; })"
+            label="Background"
+            hide-details
+            style="max-width: 200px; pointer-events: auto;"
+          />
+          <input
+            id="file-input"
+            type="file"
+          />
         </div>
         <div id="right-buttons">
         </div>
@@ -157,7 +171,7 @@ import SplashScreen from "./components/SplashScreen.vue";
 import TabSheetDrawer from "./components/TabSheetDrawer.vue"; 
 import SheetTab from "./components/SheetTab.vue";
 import WWTControlsGuide from "./components/WWTControlsGuide.vue";
-
+import { jsonToCsv } from "./utils";
 
 type SheetType = "text" | "video";
 type CameraParams = Omit<GotoRADecZoomParams, "instant">;
@@ -185,10 +199,10 @@ const props = withDefaults(defineProps<WwtPlaygroundProps>(), {
   }
 });
 
-const splash = new URLSearchParams(window.location.search).get("splash")?.toLowerCase() !== "false";
-const showSplashScreen = ref(splash);
+const _splash = new URLSearchParams(window.location.search).get("splash")?.toLowerCase() !== "false";
+const showSplashScreen = ref(false);
 const backgroundImagesets = reactive<BackgroundImageset[]>([]);
-const sheet = ref<SheetType | null>('text');
+const sheet = ref<SheetType | null>(null);
 const layersLoaded = ref(false);
 const positionSet = ref(false);
 const accentColor = ref("#235985");
@@ -197,17 +211,55 @@ const buttonColor = ref("#ffffff");
 import hyg from "./assets/hyg_proper_stars.json";
 console.log(`HYG Data Loaded with ${hyg.length} stars.`);
 
+import { RAUnits, MarkerScales, PlotTypes } from "@wwtelescope/engine-types";
+import { Color } from "@wwtelescope/engine";
+
+function addHYGDataLayer() {
+  return store.createTableLayer(
+    {
+      name: "HYG Stars",
+      // use windows line endigns for wwt
+      dataCsv: jsonToCsv(hyg).replace(/\n/g, "\r\n"),
+      referenceFrame: "Sky",
+    }
+  ).then(layer => {
+    layer.set_lngColumn(1);  // RA
+    layer.set_raUnits(RAUnits.hours);
+    layer.set_latColumn(2); // Dec // always in degrees
+    layer.set_markerScale(MarkerScales.screen);
+    store.applyTableLayerSettings({
+      id: layer.id.toString(),
+      settings: [
+        ["scaleFactor", 10],
+        ["plotType", PlotTypes.point],
+        ["color", Color.fromHex("#00ffff")]
+      ]
+    });
+  });
+}
+
 onMounted(() => {
   store.waitForReady().then(async () => {
     skyBackgroundImagesets.forEach(iset => backgroundImagesets.push(iset));
+    store.setBackgroundImageByName("Digitized Sky Survey (Color)");
     store.gotoRADecZoom({
       ...props.initialCameraParams,
       instant: true
     }).then(() => positionSet.value = true);
-
+    addHYGDataLayer();
     // If there are layers to set up, do that here!
     layersLoaded.value = true;
   });
+});
+
+const backgroundImageset = computed({
+  get() {
+    return store.backgroundImageset?.get_name();
+  },
+  set(value: BackgroundImageset) {
+    console.log(`Setting background imageset to ${value.displayName}`);
+    store.setBackgroundImageByName(value.imagesetName);
+  }
 });
 
 const ready = computed(() => layersLoaded.value && positionSet.value);

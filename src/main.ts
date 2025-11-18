@@ -1,5 +1,5 @@
 import { createApp, type DirectiveBinding, type Plugin } from "vue";
-import { FundingAcknowledgement, CreditLogos } from "@cosmicds/vue-toolkit";
+import { FundingAcknowledgement, CreditLogos, WwtHud } from "@cosmicds/vue-toolkit";
 import WwtPlayground from "./WwtPlayground.vue";
 
 import vuetify from "@/plugins/vuetify";
