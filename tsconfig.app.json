@@ -13,14 +13,18 @@
     
     // add so we don't need to use 'type' for type imports
     "verbatimModuleSyntax": false,
-
-    "baseUrl": ".",
+    
+    // Option 'baseUrl' is deprecated and will stop functioning in TypeScript 7.0. Specify compilerOption '"ignoreDeprecations": "6.0"' to silence this error.
+    // Visit https://aka.ms/ts6 for migration information.ts
+    // Per-instructions, we can just remove it, and make sure
+    // it is specified on the paths, which is already is
+    //"baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     },
     
     // keep tsconfig from vue-ds-template
-    "target": "es5",
+    "target": "es6",
     "module": "esnext",
     "moduleResolution": "bundler",
     "strict": true,
