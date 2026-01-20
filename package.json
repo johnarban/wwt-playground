@@ -8,9 +8,21 @@
     "@fortawesome/free-solid-svg-icons": "^7.1.0",
     "@fortawesome/vue-fontawesome": "^3.1.2",
     "@mdi/font": "^7.4.47",
-    "@wwtelescope/engine-pinia": "^0.11.0",
+    "@wwtelescope/astro": "portal:/Users/jal194/github/wwt-webgl-engine/astro",
+    "@wwtelescope/engine": "portal:/Users/jal194/github/wwt-webgl-engine/engine",
+    "@wwtelescope/engine-helpers": "portal:/Users/jal194/github/wwt-webgl-engine/engine-helpers",
+    "@wwtelescope/engine-pinia": "portal:/Users/jal194/github/wwt-webgl-engine/engine-pinia",
+    "@wwtelescope/engine-types": "portal:/Users/jal194/github/wwt-webgl-engine/engine-types",
     "vue": "^3.5.22",
     "vuetify": "^3.10.8"
+  },
+  "resolutions": {
+    "@wwtelescope/astro": "portal:/Users/jal194/github/wwt-webgl-engine/astro",
+    "@wwtelescope/engine": "portal:/Users/jal194/github/wwt-webgl-engine/engine",
+    "@wwtelescope/engine-helpers": "portal:/Users/jal194/github/wwt-webgl-engine/engine-helpers",
+    "@wwtelescope/engine-pinia": "portal:/Users/jal194/github/wwt-webgl-engine/engine-pinia",
+    "@wwtelescope/engine-types": "portal:/Users/jal194/github/wwt-webgl-engine/engine-types",
+    "pinia": "^3.0.3"
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.2",
@@ -34,14 +46,14 @@
     "vue-tsc": "^3.1.2"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "NODE_OPTIONS='--preserve-symlinks' vite",
     "build": "run-p type-check 'build-only {@}' --",
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build --force --noEmit",
     "clean": "rimraf dist",
     "lint": "eslint --no-fix --ignore-pattern .gitignore src",
-    "serve": "vite --host"
+    "serve": "NODE_OPTIONS='--preserve-symlinks' vite --host"
   },
   "name": "@cosmicds/wwt-playground"
 }
