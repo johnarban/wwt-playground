@@ -5,13 +5,12 @@
   >
     <div
       id="main-content"
-    >
+    > 
+      
       <WorldWideTelescope
         :wwt-namespace="wwtNamespace"
       ></WorldWideTelescope>
-      
       <LoadingModal :show="isLoading" />
-
       <!-- This contains the splash screen content -->
       <splash-screen
         v-if="showSplashScreen"
@@ -399,6 +398,7 @@ body {
     border-width: 0;
     margin: 0;
     padding: 0;
+    filter: brightness(1.25) contrast(1.1);
   }
 }
 

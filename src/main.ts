@@ -1,6 +1,6 @@
 import { createApp, type DirectiveBinding, type Plugin } from "vue";
-import { FundingAcknowledgement, CreditLogos, WwtHud } from "@cosmicds/vue-toolkit";
-import WwtPlayground from "./WwtPlayground.vue";
+import { FundingAcknowledgement, CreditLogos, PlaybackControl, SpeedControl } from "@cosmicds/vue-toolkit";
+import WwtPlayground from "./Asteroid.vue";
 
 import vuetify from "@/plugins/vuetify";
 
@@ -53,6 +53,8 @@ createApp(WwtPlayground, {
   .component("WorldWideTelescope", WWTComponent)
   .component('funding-acknowledgement', FundingAcknowledgement)
   .component('credit-logos', CreditLogos)
+  .component('playback-control', PlaybackControl)
+  .component('speed-control', SpeedControl)
 
   // Mount
   .mount("#app");
