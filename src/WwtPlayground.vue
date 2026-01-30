@@ -2,6 +2,7 @@
   <v-app
     id="app"
     :style="cssVars"
+    class="layout-debug"
   >
     <div
       id="main-content"
@@ -12,49 +13,6 @@
 
 
       <!-- This contains the splash screen content -->
-
-      <v-overlay
-        id="splash-overlay"
-        :model-value="showSplashScreen"
-        absolute
-        opacity="0.6"
-        :style="cssVars"
-      >
-        <div
-          id="splash-screen"
-          v-click-outside="closeSplashScreen"
-          :style="cssVars"
-        >
-          <font-awesome-icon
-            id="close-splash-button"
-            icon="xmark"
-            tabindex="0"
-            @click="closeSplashScreen"
-            @keyup.enter="closeSplashScreen"
-          />
-          <div id="splash-screen-text">
-            <p>Splash Screen Content</p>
-          </div>
-          <div
-            id="splash-screen-acknowledgements"
-            class="small"
-          >
-            This Data Story is brought to you by <a
-              href="https://www.cosmicds.cfa.harvard.edu/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >Cosmic Data Stories</a> and <a
-              href="https://www.worldwidetelescope.org/home/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >WorldWide Telescope</a>.
-          
-            <div id="splash-screen-logos">
-              <credit-logos logo-size="5vmin" />
-            </div>
-          </div>
-        </div>
-      </v-overlay>
 
       <transition name="fade">
         <div
@@ -75,18 +33,8 @@
       <div id="top-content">
         <div id="left-buttons">
           <icon-button
-            v-model="showTextSheet"
-            fa-icon="book-open"
+            icon="book-open"
             :color="buttonColor"
-            :tooltip-text="showTextSheet ? 'Hide Info' : 'Learn More'"
-            tooltip-location="start"
-          >
-          </icon-button>
-          <icon-button
-            v-model="showVideoSheet"
-            fa-icon="video"
-            :color="buttonColor"
-            tooltip-text="Watch video"
             tooltip-location="start"
           >
           </icon-button>
@@ -105,184 +53,20 @@
           v-if="!smallSize"
           id="body-logos"
         >
-          <credit-logos />
+          <CreditLogos
+            :default-logos="['cosmicds', 'wwt']"
+          />
         </div>
       </div>
-
-
-      <!-- This dialog contains the video that is displayed when the video icon is clicked -->
-
-      <v-dialog
-        id="video-container"
-        v-model="showVideoSheet"
-        transition="slide-y-transition"
-        fullscreen
-      >
-        <div class="video-wrapper">
-          <font-awesome-icon
-            id="video-close-icon"
-            class="close-icon"
-            icon="times"
-            size="lg"
-            tabindex="0"
-            @click="showVideoSheet = false"
-            @keyup.enter="showVideoSheet = false"
-          ></font-awesome-icon>
-          <video
-            id="info-video"
-            controls
-          >
-            <source
-              src=""
-              type="video/mp4"
-            >
-          </video>
-        </div>
-      </v-dialog>
-
-
-      <!-- This dialog contains the informational content that is displayed when the book icon is clicked -->
-
-      <v-dialog
-        id="text-info-sheet"
-        v-model="showTextSheet"
-        :style="cssVars"
-        :class="['info-sheet', `info-sheet-${infoSheetLocation}`]"
-        :scrim="false"
-        persistent
-        no-click-animation
-        absolute
-        location="bottom"
-        :transition="infoSheetTransition"
-      >
-        <v-card height="100%">
-          <v-tabs
-            id="tabs"
-            v-model="tab"
-            height="32px"
-            :color="accentColor"
-            :slider-color="accentColor"
-            dense
-          >
-            <v-tab
-              class="info-tabs"
-              tabindex="0"
-            >
-              <h3>Information</h3>
-            </v-tab>
-            <v-tab
-              class="info-tabs"
-              tabindex="0"
-            >
-              <h3>Using WWT</h3>
-            </v-tab>
-          </v-tabs>
-          <font-awesome-icon
-            id="close-text-icon"
-            class="control-icon"
-            icon="times"
-            size="lg"
-            tabindex="0"
-            @click="showTextSheet = false"
-            @keyup.enter="showTextSheet = false"
-          ></font-awesome-icon>
-          <v-window
-            id="tab-items"
-            v-model="tab"
-            class="pb-2 no-bottom-border-radius"
-          >
-            <v-window-item>
-              <v-card class="no-bottom-border-radius scrollable">
-                <v-card-text class="info-text no-bottom-border-radius">
-                  Information goes here
-                  <v-spacer class="end-spacer"></v-spacer>
-                </v-card-text>
-              </v-card>
-            </v-window-item>
-            <v-window-item>
-              <v-card class="no-bottom-border-radius scrollable">
-                <v-card-text class="info-text no-bottom-border-radius">
-                  <v-container>
-                    <v-row align="center">
-                      <v-col cols="4">
-                        <v-chip
-                          label
-                          variant="outlined"
-                        >
-                          Pan
-                        </v-chip>
-                      </v-col>
-                      <v-col
-                        cols="8"
-                        class="pt-1"
-                      >
-                        <strong>{{ touchscreen ? "press + drag" : "click + drag" }}</strong>  {{ touchscreen ? ":" : "or" }}  <strong>{{ touchscreen ? ":" : "W-A-S-D" }}</strong> {{ touchscreen ? ":" : "keys" }}<br>
-                      </v-col>
-                    </v-row>
-                    <v-row align="center">
-                      <v-col cols="4">
-                        <v-chip
-                          label
-                          variant="outlined"
-                        >
-                          Zoom
-                        </v-chip>
-                      </v-col>
-                      <v-col
-                        cols="8"
-                        class="pt-1"
-                      >
-                        <strong>{{ touchscreen ? "pinch in and out" : "scroll in and out" }}</strong> {{ touchscreen ? ":" : "or" }} <strong>{{ touchscreen ? ":" : "I-O" }}</strong> {{ touchscreen ? ":" : "keys" }}<br>
-                      </v-col>
-                    </v-row>
-                    <v-row>
-                      <v-col cols="12">
-                        <div class="credits">
-                          <h3>Credits:</h3>
-                          <h4>
-                            <a
-                              href="https://www.cosmicds.cfa.harvard.edu/"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >CosmicDS</a> Vue Data Stories Team:
-                          </h4>
-                          John Lewis<br>
-                          Jon Carifio<br>
-                          Pat Udomprasert<br>
-                          Alyssa Goodman<br>
-                          Mary Dussault<br>
-                          Harry Houghton<br>
-                          Anna Nolin<br>
-                          Evaluator: Sue Sunbury<br>
-                          <br>
-                          <h4>WorldWide Telescope Team:</h4>
-                          Peter Williams<br>
-                          A. David Weigel<br>
-                          Jon Carifio<br>
-                        </div>
-                        <v-spacer class="end-spacer"></v-spacer>
-                      </v-col>
-                    </v-row>
-                    <v-row>
-                      <v-col>
-                        <funding-acknowledgement />
-                      </v-col>
-                    </v-row>
-                  </v-container>              
-                </v-card-text>
-              </v-card>
-            </v-window-item>
-          </v-window>
-        </v-card>
-      </v-dialog>
     </div>
   </v-app>
 </template>
 
 <script setup lang="ts">
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { ref, reactive, computed, onMounted, nextTick } from "vue";
 import { GotoRADecZoomParams, engineStore } from "@wwtelescope/engine-pinia";
-import { BackgroundImageset, skyBackgroundImagesets, supportsTouchscreen, blurActiveElement, useWWTKeyboardControls } from "@cosmicds/vue-toolkit";
+import { BackgroundImageset, skyBackgroundImagesets, supportsTouchscreen, blurActiveElement, useWWTKeyboardControls, WWTEngineStore, CreditLogos, IconButton } from "@cosmicds/vue-toolkit";
 import { useDisplay } from "vuetify";
 
 type SheetType = "text" | "video";
@@ -318,7 +102,6 @@ const layersLoaded = ref(false);
 const positionSet = ref(false);
 const accentColor = ref("#ffffff");
 const buttonColor = ref("#ffffff");
-const tab = ref(0);
 
 onMounted(() => {
   store.waitForReady().then(async () => {
@@ -327,7 +110,6 @@ onMounted(() => {
       ...props.initialCameraParams,
       instant: true
     }).then(() => positionSet.value = true);
-
     // If there are layers to set up, do that here!
     layersLoaded.value = true;
   });
@@ -341,75 +123,15 @@ const isLoading = computed(() => !ready.value);
 /* Properties related to device/screen characteristics */
 const smallSize = computed(() => smAndDown.value);
 
-/** Values related to setting the info sheet size and position */
-const infoFraction = 34;
-const tall = computed(() => smAndDown.value);
-const widescreenInfoLocation = ref<"right" | "bottom">("right");
-const infoSheetLocation = computed(() => tall.value || widescreenInfoLocation.value === "bottom" ? "bottom" : "right");
-const infoSheetHeight = computed(() => infoSheetLocation.value === "bottom" ? `${infoFraction}%` : "100%");
-const infoSheetWidth = computed(() => infoSheetLocation.value === "bottom" ? "100%" : `${infoFraction}%`);
-const infoTextHeight = computed(() => infoSheetLocation.value === "bottom" ? `calc(${infoFraction}vh - 25px)` : "calc(100vh - 25px)");
-const infoSheetTransition = computed(() => infoSheetLocation.value === "bottom" ? "dialog-bottom-transition" : "tab-reverse-transition");
 
 /* This lets us inject component data into element CSS */
 const cssVars = computed(() => {
   return {
     "--accent-color": accentColor.value,
-    "--app-content-height": showTextSheet.value && infoSheetLocation.value === "bottom" ? `${100 - infoFraction}%` : "100%",
-    "--app-content-width": showTextSheet.value && infoSheetLocation.value === "right" ? `${100 - infoFraction}%` : "100%",
-    "--info-sheet-width": infoSheetWidth.value,
-    "--info-sheet-height": infoSheetHeight.value,
-    "--info-text-height": infoTextHeight.value,
   };
 });
 
 
-/**
-  Computed flags that control whether the relevant dialogs display.
-  The `sheet` data member stores which sheet is open, so these are just
-  computed wrappers around modifying/querying that which can be used as
-  dialog v-model values
-*/
-const showTextSheet = computed({
-  get() {
-    return sheet.value === "text";
-  },
-  set(_value: boolean) {
-    selectSheet("text");
-  }
-});
-
-const showVideoSheet = computed({
-  get() {
-    return sheet.value === "video";
-  },
-  set(value: boolean) {
-    selectSheet("video");
-    if (!value) {
-      const video = document.querySelector("#info-video") as HTMLVideoElement;
-      video.pause();
-    }
-  }
-});
-
-/**
-  This is convenient if there's any other logic that we want to run
-  when the splash screen is closed
-*/
-function closeSplashScreen() {
-  showSplashScreen.value = false;
-}
-
-function selectSheet(sheetType: SheetType | null) {
-  if (sheet.value === sheetType) {
-    sheet.value = null;
-    nextTick(() => {
-      blurActiveElement();
-    });
-  } else {
-    sheet.value = sheetType;
-  }
-}
 </script>
 
 <style lang="less">
@@ -419,8 +141,8 @@ function selectSheet(sheetType: SheetType | null) {
 }
 
 :root {
-  --default-font-size: clamp(0.7rem, min(1.7vh, 1.7vw), 1.1rem);
-  --default-line-height: clamp(1rem, min(2.2vh, 2.2vw), 1.6rem);
+  font-size: 11pt;
+  line-height: 1.2;
 }
 
 html {
@@ -448,8 +170,8 @@ body {
 
 #main-content {
   position: fixed;
-  width: var(--app-content-width);
-  height: var(--app-content-height);
+  width: 100vw;
+  height: 100vh;
   overflow: hidden;
 
   transition: height 0.1s ease-in-out;
@@ -460,7 +182,6 @@ body {
   height: 100%;
   margin: 0;
   overflow: hidden;
-  font-size: 11pt;
 
   .wwtelescope-component {
     position: absolute;
@@ -515,7 +236,7 @@ body {
     p {
       margin: 0 0 0 1rem;
       padding: 0;
-      font-size: 150%;
+      font-size: 2rem;
     }
   }
 }
@@ -557,63 +278,9 @@ body {
   gap: 5px;
 }
 
-#splash-overlay {
-  position: fixed;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-#splash-screen {
-  color: #FFFFFF;
-  background-color: #000000;
-  display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-  align-content: center;
-  justify-content: space-around;
-
-  font-family: 'Highway Gothic Narrow', 'Roboto', sans-serif;
-  font-size: min(8vw, 7vh);
-
-  border-radius: 10%;
-  border: min(1.2vw, 0.9vh) solid var(--accent-color);
-  overflow: auto;
-  padding-top: 4rem;
-  padding-bottom: 1rem;
-
-  @media (max-width: 699px) {
-    max-height: 80vh;
-    max-width: 90vw;
-  }
-
-  @media (min-width: 700px) {
-    max-height: 85vh;
-    max-width: min(70vw, 800px);
-  }
-
-  div {
-    margin-inline: auto;
-    text-align: center;
-  }
-
-  .small {
-    font-size: var(--default-font-size);
-    font-weight: bold;
-  }
-
-  #close-splash-button {
-    position: absolute;
-    top: 0.5rem;
-    right: 1.75rem;
-    text-align: end;
-    color: var(--accent-color);
-    font-size: min(8vw, 5vh);
-
-    &:hover {
-      cursor: pointer;
-    }
+#bottom-content {
+  #body-logos {
+    align-self: flex-end;
   }
 }
 
@@ -627,134 +294,21 @@ button:focus-visible,
   border-radius: .125rem;
 }
 
-.video-wrapper {
-  height: 100%;
-  background: black;
-  text-align: center;
-  z-index: 1000;
-
-  #video-close-icon {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 15;
-    
-    &:hover {
-      cursor: pointer;
-    }
-
-    &:focus {
-      color: white;
-      border: 2px solid white;
-    }
+.layout-debug {
+  #main-content {
+    border: 2px solid red;
   }
+  #main-content,
+  #top-content,
+  #left-buttons,
+  #center-buttons,
+  #right-buttons,
+  #bottom-content {
+    outline: 1px solid white;
+    min-width: 1px;
+    min-height: 1px;
+  }
+  
 }
 
-video {
-  height: 100%;
-  width: auto;
-  max-width: 100%;
-  object-fit: contain;
-}
-
-#info-video {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  max-width: 100%;
-  overflow: hidden;
-  padding: 0px;
-  z-index: 10;
-}
-
-.info-sheet {
-  .v-overlay__content {
-    align-self: flex-end;
-    padding: 0;
-    margin: 0 !important;
-    max-width: 100% !important;
-    height: var(--info-sheet-height) !important;
-    width: var(--info-sheet-width) !important;
-  }
-
-  &.info-sheet-right .v-overlay__content {
-    position: absolute;
-    top: 0;
-    right: 0;
-    max-height: 100%;
-
-    & .v-card, & .v-card .v-window {
-      height: 100%;
-    }
-    
-    & .info-tabs h3 {
-      font-size: 10pt;
-    }
-  }
-
-  #tabs {
-    width: calc(100% - 3em);
-    align-self: left;
-  }
-
-  .info-text {
-    height: var(--info-text-height);
-    padding-bottom: 25px;
-  
-    & a {
-      text-decoration: none;
-    }
-  }
-  
-  .close-icon {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 15;
-  
-    &:hover {
-      cursor: pointer;
-    }
-  
-    &:focus {
-      color: white;
-      border: 2px solid white;
-    }
-  }
-  
-  .scrollable {
-    overflow-y: auto;
-  }
-  
-  #tab-items {
-    // padding-bottom: 2px !important;
-  
-    .v-card-text {
-      font-size: ~"max(14px, calc(0.7em + 0.3vw))";
-      padding-top: ~"max(2vw, 16px)";
-      padding-left: ~"max(4vw, 16px)";
-      padding-right: ~"max(4vw, 16px)";
-  
-      .end-spacer {
-        height: 25px;
-      }
-    }
-  
-  }
-  
-  #close-text-icon {
-    position: absolute;
-    top: 0.25em;
-    right: calc((3em - 0.6875em) / 3); // font-awesome-icons have width 0.6875em
-    color: white;
-  }
-
-  // This prevents the tabs from having some extra space to the left when the screen is small
-  // (around 400px or less)
-  .v-tabs:not(.v-tabs--vertical).v-tabs--right>.v-slide-group--is-overflowing.v-tabs-bar--is-mobile:not(.v-slide-group--has-affixes) .v-slide-group__next, .v-tabs:not(.v-tabs--vertical):not(.v-tabs--right)>.v-slide-group--is-overflowing.v-tabs-bar--is-mobile:not(.v-slide-group--has-affixes) .v-slide-group__prev {
-    display: none;
-  }
-}
 </style>
