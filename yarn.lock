@@ -125,7 +125,7 @@ __metadata:
     vue-eslint-parser: "npm:^10.2.0"
     vue-router: "npm:^5.0.1"
     vue-tsc: "npm:^3.2.4"
-    vuetify: "npm:^3.11.4"
+    vuetify: "npm:^3.11.8"
   languageName: unknown
   linkType: soft
 
@@ -3519,7 +3519,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vuetify@npm:^3.11.4, vuetify@npm:^3.3.3":
+"vuetify@npm:^3.11.8, vuetify@npm:^3.3.3":
   version: 3.11.8
   resolution: "vuetify@npm:3.11.8"
   peerDependencies:
