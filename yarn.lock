@@ -71,9 +71,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@cosmicds/vue-toolkit@npm:^0.6.0":
-  version: 0.6.0
-  resolution: "@cosmicds/vue-toolkit@npm:0.6.0"
+"@cosmicds/vue-toolkit@npm:^0.7.0":
+  version: 0.7.0
+  resolution: "@cosmicds/vue-toolkit@npm:0.7.0"
   dependencies:
     "@capacitor/core": "npm:^5.7.4"
     "@capacitor/geolocation": "npm:^5.0.7"
@@ -90,7 +90,7 @@ __metadata:
     screenfull: "npm:^6.0.2"
     vue: "npm:^3.4"
     vuetify: "npm:^3.3.3"
-  checksum: 10c0/a9701313ba0277f21e29f5c70b6c74dc2f812c7f17e22e9985af91c442871c91551cb8420b25f3cafa299c75501ef7ca804111bd2ff288eae56bce8d0e7a8139
+  checksum: 10c0/1ae1f7a20948f2e6dd4674f4c2d8c9910ba189aa1e64f8f64505f1b2f5a92d6a8a389fe2e628354d3dd5bcb678a711f181684f33dddd7298b28dc1fda4a4629e
   languageName: node
   linkType: hard
 
@@ -98,7 +98,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@cosmicds/wwt-playground@workspace:."
   dependencies:
-    "@cosmicds/vue-toolkit": "npm:^0.6.0"
+    "@cosmicds/vue-toolkit": "npm:^0.7.0"
     "@fortawesome/fontawesome-svg-core": "npm:^7.1.0"
     "@fortawesome/free-solid-svg-icons": "npm:^7.1.0"
     "@fortawesome/vue-fontawesome": "npm:^3.1.3"
@@ -107,6 +107,7 @@ __metadata:
     "@types/node": "npm:^25.1.0"
     "@vitejs/plugin-vue": "npm:^6.0.3"
     "@vue/tsconfig": "npm:^0.8.1"
+    "@wwtelescope/engine": "npm:^7.31.0"
     "@wwtelescope/engine-pinia": "npm:^0.11.0"
     eslint: "npm:^9.39.2"
     eslint-plugin-vue: "npm:^10.7.0"
@@ -114,7 +115,7 @@ __metadata:
     less: "npm:^4.5.1"
     less-loader: "npm:^12.3.0"
     npm-run-all2: "npm:^8.0.4"
-    pinia: "npm:^3.0.4"
+    pinia: "npm:^3.0.0"
     rimraf: "npm:^6.1.2"
     typescript: "npm:~5.9.3"
     typescript-eslint: "npm:^8.54.0"
@@ -124,7 +125,7 @@ __metadata:
     vue-eslint-parser: "npm:^10.2.0"
     vue-router: "npm:^5.0.1"
     vue-tsc: "npm:^3.2.4"
-    vuetify: "npm:^3.11.8"
+    vuetify: "npm:^3.11.4"
   languageName: unknown
   linkType: soft
 
@@ -1057,13 +1058,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vue/devtools-api@npm:^6.5.0, @vue/devtools-api@npm:^6.6.3":
-  version: 6.6.4
-  resolution: "@vue/devtools-api@npm:6.6.4"
-  checksum: 10c0/0a993ae23618166e1bee5a7c14cebd8312752b93c143cbdd48fb2d0f7ade070d0e6baf757cd920d4681fef8f9acf29515162160f38cc7410f9a684d2df21b6de
-  languageName: node
-  linkType: hard
-
 "@vue/devtools-api@npm:^7.7.7":
   version: 7.7.9
   resolution: "@vue/devtools-api@npm:7.7.9"
@@ -1283,20 +1277,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@wwtelescope/engine-pinia@npm:^0.9.0":
-  version: 0.9.0
-  resolution: "@wwtelescope/engine-pinia@npm:0.9.0"
-  dependencies:
-    "@wwtelescope/astro": "npm:>=0.2.2"
-    "@wwtelescope/engine": "npm:^7.29.1"
-    "@wwtelescope/engine-helpers": "npm:>=0.15.0"
-    "@wwtelescope/engine-types": "npm:>=0.6.3"
-    pinia: "npm:^2.0.22"
-    vue: "npm:^3"
-  checksum: 10c0/32d1e166eeea2d5471e0b562739526134910c481643f1abd0e7a5ddda40a4e0a4b1b46c670709a4fc95d34b87f3bed4c3d76afb085b2924f3fa9c084327e141e
-  languageName: node
-  linkType: hard
-
 "@wwtelescope/engine-types@npm:>=0.6.0, @wwtelescope/engine-types@npm:>=0.6.3":
   version: 0.6.7
   resolution: "@wwtelescope/engine-types@npm:0.6.7"
@@ -1304,7 +1284,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@wwtelescope/engine@npm:^7.29.1, @wwtelescope/engine@npm:^7.30.1":
+"@wwtelescope/engine@npm:^7.29.1, @wwtelescope/engine@npm:^7.30.1, @wwtelescope/engine@npm:^7.31.0":
   version: 7.31.0
   resolution: "@wwtelescope/engine@npm:7.31.0"
   dependencies:
@@ -2806,23 +2786,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pinia@npm:^2.0.22":
-  version: 2.3.1
-  resolution: "pinia@npm:2.3.1"
-  dependencies:
-    "@vue/devtools-api": "npm:^6.6.3"
-    vue-demi: "npm:^0.14.10"
-  peerDependencies:
-    typescript: ">=4.4.4"
-    vue: ^2.7.0 || ^3.5.11
-  peerDependenciesMeta:
-    typescript:
-      optional: true
-  checksum: 10c0/e005883c26fe782e26803859db8703ead2e7053271d22828175c82d56e925ddab65ca2543a3f3a36686a11e6835f60c031f1eb2ef9159f9da05121495499c5f6
-  languageName: node
-  linkType: hard
-
-"pinia@npm:^3.0.4":
+"pinia@npm:^3.0.0":
   version: 3.0.4
   resolution: "pinia@npm:3.0.4"
   dependencies:
@@ -2834,25 +2798,6 @@ __metadata:
     typescript:
       optional: true
   checksum: 10c0/4123efbf28c6d11f3dd052dbcf08da7ef85747fd3499807b9ca1d32dcda7807b2e68f9a7e31a06148b05093a9ebcd0c3b26e6a31b62775c6421429bd03265949
-  languageName: node
-  linkType: hard
-
-"pinia@npm:~2.1.7":
-  version: 2.1.7
-  resolution: "pinia@npm:2.1.7"
-  dependencies:
-    "@vue/devtools-api": "npm:^6.5.0"
-    vue-demi: "npm:>=0.14.5"
-  peerDependencies:
-    "@vue/composition-api": ^1.4.0
-    typescript: ">=4.4.4"
-    vue: ^2.6.14 || ^3.3.0
-  peerDependenciesMeta:
-    "@vue/composition-api":
-      optional: true
-    typescript:
-      optional: true
-  checksum: 10c0/f4380a4db04b5b8565ed8a6843821d91f8f650d79dd9f0094005248bd963521b8a73419032fda76541e59b895b0e7852e67ca9d0408162cc391ce5a1bcbda445
   languageName: node
   linkType: hard
 
@@ -3489,22 +3434,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vue-demi@npm:>=0.14.5, vue-demi@npm:^0.14.10":
-  version: 0.14.10
-  resolution: "vue-demi@npm:0.14.10"
-  peerDependencies:
-    "@vue/composition-api": ^1.0.0-rc.1
-    vue: ^3.0.0-0 || ^2.6.0
-  peerDependenciesMeta:
-    "@vue/composition-api":
-      optional: true
-  bin:
-    vue-demi-fix: bin/vue-demi-fix.js
-    vue-demi-switch: bin/vue-demi-switch.js
-  checksum: 10c0/a9ed8712fa36d01bc13c39757f95f30cebf42d557b99e94bff86d8660c81f2911b41220f7affc023d1ffcc19e13999e4a83019991e264787cca2c616e83aea48
-  languageName: node
-  linkType: hard
-
 "vue-eslint-parser@npm:^10.2.0":
   version: 10.2.0
   resolution: "vue-eslint-parser@npm:10.2.0"
@@ -3590,7 +3519,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vuetify@npm:^3.11.8, vuetify@npm:^3.3.3":
+"vuetify@npm:^3.11.4, vuetify@npm:^3.3.3":
   version: 3.11.8
   resolution: "vuetify@npm:3.11.8"
   peerDependencies:
