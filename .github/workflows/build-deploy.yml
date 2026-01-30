@@ -44,8 +44,6 @@ jobs:
         with:
           ref: gh-pages
           path: gh-pages-dir
-          fetch-depth: 1
-        continue-on-error: true
 
       - name: Prepare deployment folder
         id: prepare
