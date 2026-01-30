@@ -6,6 +6,9 @@ on:
       - '**'
       - '!gh-pages'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     if: ${{ github.repository_owner == 'johnarban' }}
