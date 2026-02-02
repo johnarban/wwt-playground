@@ -89,5 +89,4 @@ jobs:
         with:
           branch: gh-pages
           folder: gh-pages-dir
-          ssh-key: ${{ secrets.DEPLOY_KEY }}
           clean: true
