@@ -64,7 +64,7 @@
 
 <script setup lang="ts">
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ref, reactive, computed, onMounted, nextTick } from "vue";
+import { ref, reactive, computed, onMounted, nextTick, watch, type Ref } from "vue";
 import { GotoRADecZoomParams, engineStore } from "@wwtelescope/engine-pinia";
 import { BackgroundImageset, skyBackgroundImagesets, supportsTouchscreen, blurActiveElement, useWWTKeyboardControls, WWTEngineStore, CreditLogos, IconButton } from "@cosmicds/vue-toolkit";
 import { useDisplay } from "vuetify";
@@ -89,7 +89,7 @@ const props = withDefaults(defineProps<WwtPlaygroundProps>(), {
     return {
       raRad: 0,
       decRad: 0,
-      zoomDeg: 60
+      zoomDeg: 360
     };
   }
 });
@@ -103,6 +103,29 @@ const positionSet = ref(false);
 const accentColor = ref("#ffffff");
 const buttonColor = ref("#ffffff");
 
+const starsImageName = ref('');
+const linesImageName = ref('');
+import { ImageSetLayer } from "@wwtelescope/engine";
+const starsImageset = ref<ImageSetLayer | null>(null);
+const linesImageset = ref<ImageSetLayer | null>(null);
+const crossFade = ref(0);
+
+function addImageSetLayer(url: string, nameRef: Ref<string | null>, isetRef: Ref<ImageSetLayer | null>) {
+  return store.loadImageCollection({ url: url, loadChildFolders: false })
+    .then((folder) => {
+      nameRef.value = folder['_proxyFolder']['_nameField'];
+      const iset = store.availableImagesets.find(v => v.name === nameRef.value);
+      
+      if (!iset) {
+        throw new Error(`ImageSet ${nameRef.value} not found in available imagesets`);
+      }
+      
+      return store.addImageSetLayer({...iset, mode: 'preloaded', goto: false,})
+        .then((iset => isetRef.value = iset));
+    });
+}
+
+
 onMounted(() => {
   store.waitForReady().then(async () => {
     skyBackgroundImagesets.forEach(iset => backgroundImagesets.push(iset));
@@ -110,6 +133,28 @@ onMounted(() => {
 
     store.applySetting(['galacticMode', true]);
     positionSet.value = true;
+    
+    // Load SPHEREx image collections
+    const p1 = addImageSetLayer(
+      "/SPHEREx_LinesRB_equirectangular_toast/index.wtml",
+      linesImageName,
+      linesImageset
+    );
+    
+    const p2 = addImageSetLayer(
+      "/SPHEREx_StarsRGB_equirectangular_toast/index.wtml",
+      starsImageName,
+      starsImageset
+    );
+    
+    
+    Promise.all([p1, p2]).then(() => {
+      console.log('SPHEREx image layers loaded:', {starsImageset: starsImageset.value, linesImageset: linesImageset.value});
+      // setLayerOrder();
+      layersLoaded.value = true;
+    });
+    
+    
   });
 });
 
