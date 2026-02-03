@@ -1,0 +1,78 @@
+/* Style generated at https://range-input-css.netlify.app/
+/* Based on article by Alyssa Holland
+/* https://www.smashingmagazine.com/2021/12/create-custom-range-input-consistent-browsers/
+/* I switch styling on :focus state to be on :active state
+*/
+
+/*********** Baseline, reset styles ***********/
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  width: 100%;
+  --track-color: wheat;
+  --thumb-color: rgb(71, 97, 139);
+  scale: 1;
+  transition: all 0.5s ease-in-out;
+}
+
+/* Removes default focus */
+input[type="range"]:focus {
+  outline: none;
+}
+
+/******** Chrome, Safari, Opera and Edge Chromium styles ********/
+/* slider track */
+input[type="range"]::-webkit-slider-runnable-track {
+  background-color: var(--track-color);
+  border-radius: 0.5rem;
+  height: 1rem;
+}
+
+/* slider thumb */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; /* Override default look */
+  appearance: none;
+  margin-top: -4px; /* Centers thumb on the track */
+  background-color: var(--thumb-color);
+  border-radius: 50%;
+  height: 1.5rem;
+  width: 1.5rem;
+}
+
+input[type="range"]:active::-webkit-slider-thumb {
+  outline: 3px solid var(--thumb-color);
+  outline-offset: 0.125rem;
+}
+
+input[type="range"]:hover::-webkit-slider-thumb {
+  scale: 1.25;
+}
+
+/*********** Firefox styles ***********/
+/* slider track */
+input[type="range"]::-moz-range-track {
+  background-color: var(--track-color);
+  border-radius: 0.5rem;
+  height: 1rem;
+}
+
+/* slider thumb */
+input[type="range"]::-moz-range-thumb {
+  background-color: var(--thumb-color);
+  border: none; /*Removes extra border that FF applies*/
+  border-radius: 50%;
+  height: 1.5rem;
+  width: 1.5rem;
+}
+
+input[type="range"]:active::-moz-range-thumb {
+  outline: 3px solid var(--thumb-color);
+  outline-offset: 0.125rem;
+}
+
+
+input[type="range"]:hover::-moz-range-thumb {
+  scale: 1.25;
+}

@@ -367,7 +367,7 @@ body {
   width: calc(100% - 2rem);
   pointer-events: none;
   align-items: center;
-  gap: 5px;
+  gap: 1.5rem;
 }
 
 #bottom-content {
@@ -399,6 +399,48 @@ button:focus-visible,
     outline: 1px solid white;
     min-width: 1px;
     min-height: 1px;
+  }
+  
+}
+
+.wwt-use-pointer {
+  pointer-events: auto;
+}
+
+input[type="range"].cross-fade-slider {
+  width: 60vw;
+}
+
+.wwt-playground-button {
+  background-color: rgba(100, 0, 100, 0.5);
+  color: white;
+  border: 1px solid white;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  
+  &:hover {
+    background-color: rgba(150, 0, 150, 0.7);
+  }
+}
+
+.foreground-background-opacity-control {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid white;
+  padding: 0.5rem;
+  width: fit-content;
+  
+  input[type="range"].sphere-x-fade-slider {
+    flex: 1 1 auto;
+    width: max-content;
+  }
+  
+  button.toggle-images-button {
+    flex: 1 0 auto;
+    width: fit-content
   }
   
 }

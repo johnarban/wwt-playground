@@ -19,6 +19,8 @@ library.add(faBookOpen);
 library.add(faTimes);
 library.add(faVideo);
 
+import './assets/range-slider.css';
+
 /** v-hide directive taken from https://www.ryansouthgate.com/2020/01/30/vue-js-v-hide-element-whilst-keeping-occupied-space/ */
 // Extract the function out, up here, so I'm not writing it twice
 const update = (el: HTMLElement, binding: DirectiveBinding) => el.style.visibility = (binding.value) ? "hidden" : "";
