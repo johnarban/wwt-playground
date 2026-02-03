@@ -185,13 +185,13 @@ onMounted(() => {
     
     // Load SPHEREx image collections
     const p1 = addImageSetLayer(
-      "/SPHEREx_LinesRB_equirectangular_toast/index.wtml",
+      "https://johnarban.github.io/wwt-playground/sphere-x/SPHEREx_LinesRB_equirectangular_toast/index.wtml",
       linesImageName,
       linesImageset
     );
     
     const p2 = addImageSetLayer(
-      "/SPHEREx_StarsRGB_equirectangular_toast/index.wtml",
+      "https://johnarban.github.io/wwt-playground/sphere-x/SPHEREx_StarsRGB_equirectangular_toast/index.wtml",
       starsImageName,
       starsImageset
     );
