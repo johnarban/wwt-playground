@@ -106,12 +106,10 @@ const buttonColor = ref("#ffffff");
 onMounted(() => {
   store.waitForReady().then(async () => {
     skyBackgroundImagesets.forEach(iset => backgroundImagesets.push(iset));
-    store.gotoRADecZoom({
-      ...props.initialCameraParams,
-      instant: true
-    }).then(() => positionSet.value = true);
-    // If there are layers to set up, do that here!
-    layersLoaded.value = true;
+    store.setBackgroundImageByName("Deep Star Maps 2020");
+
+    store.applySetting(['galacticMode', true]);
+    positionSet.value = true;
   });
 });
 
