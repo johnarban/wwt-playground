@@ -199,7 +199,7 @@ onMounted(() => {
     
     Promise.all([p1, p2]).then(() => {
       console.log('SPHEREx image layers loaded:', {starsImageset: starsImageset.value, linesImageset: linesImageset.value});
-      // setLayerOrder();
+      setLayerOrder();
       layersLoaded.value = true;
     });
     
