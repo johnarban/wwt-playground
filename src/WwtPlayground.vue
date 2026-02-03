@@ -2,7 +2,7 @@
   <v-app
     id="app"
     :style="cssVars"
-    class="layout-debug"
+    class=""
   >
     <div
       id="main-content"
@@ -32,12 +32,6 @@
 
       <div id="top-content">
         <div id="left-buttons">
-          <icon-button
-            icon="book-open"
-            :color="buttonColor"
-            tooltip-location="start"
-          >
-          </icon-button>
         </div>
         <div id="center-buttons">
         </div>
@@ -49,6 +43,32 @@
       <!-- This block contains the elements (e.g. the project icons) displayed along the bottom of the screen -->
 
       <div id="bottom-content">
+        <input 
+          v-model="crossFade" 
+          :class="{'wwt-use-pointer': !imagesHidden, 'opacity-slider': true, 'cross-fade-slider': true}"
+          type="range"
+          :min="0" 
+          :max="100" 
+          :step="1"
+        />
+        <div class="foreground-background-opacity-control">
+          <button 
+            class="wwt-use-pointer wwt-playground-button toggle-images-button" 
+            @click="toggleImages"
+          >
+            {{ imagesHidden ? 'Show' : 'Hide' }} Sphere-X layers
+          </button>
+          <label> Fade Sphere-X layers:
+            <input
+              v-model="sphereXFade" 
+              :class="{'wwt-use-pointer': !imagesHidden, 'opacity-slider': true, 'sphere-x-fade-slider': true}"
+              type="range"
+              :min="0" 
+              :max="1" 
+              :step="0.01"
+            />
+          </label>
+        </div>
         <div
           v-if="!smallSize"
           id="body-logos"
@@ -109,6 +129,35 @@ import { ImageSetLayer } from "@wwtelescope/engine";
 const starsImageset = ref<ImageSetLayer | null>(null);
 const linesImageset = ref<ImageSetLayer | null>(null);
 const crossFade = ref(0);
+const sphereXFade = ref(1.0);
+const starOpacity = computed(() => sphereXFade.value * Math.max(.5, crossFade.value / 100));
+const linesOpacity = computed(() => sphereXFade.value * Math.max(.5, 1 - crossFade.value / 100));
+function setLayerOrder() {
+  if (starsImageset.value && linesImageset.value) {
+    store.setImageSetLayerOrder({
+      id: starsImageset.value.id.toString(),
+      order: crossFade.value > 50 ? 0 : 1
+    });
+    
+    store.setImageSetLayerOrder({
+      id: linesImageset.value.id.toString(),
+      order: crossFade.value <= 50 ? 1 : 0
+    });
+  }
+}
+watch([starOpacity,  linesOpacity, crossFade], (op, old) => {
+  starsImageset.value?.set_opacity(starOpacity.value);
+  linesImageset.value?.set_opacity(linesOpacity.value);
+  if ((old[2] < 50 && op[2] >= 50) || (old[2] > 50 && op[2] <= 50) ) {
+    setLayerOrder();
+  }
+});
+const imagesHidden = ref(false);
+function toggleImages() {
+  starsImageset.value?.set_opacity(imagesHidden.value ? starOpacity.value : 0);
+  linesImageset.value?.set_opacity(imagesHidden.value ? linesOpacity.value : 0);
+  imagesHidden.value = !imagesHidden.value;
+}
 
 function addImageSetLayer(url: string, nameRef: Ref<string | null>, isetRef: Ref<ImageSetLayer | null>) {
   return store.loadImageCollection({ url: url, loadChildFolders: false })
