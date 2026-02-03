@@ -76,13 +76,6 @@ jobs:
           echo "Verifying contents:"
           ls -la $BRANCH
           
-          if [[ "$BRANCH" == "main" ]]; then
-            # we want to move it to the root for main branch deployments
-            echo "Moving contents to root for main branch deployment."
-            mv $BRANCH/* .
-            rm -rf $BRANCH
-          fi
-          
           echo "Verifying deployment folder structure:"
           tree -d .
           
