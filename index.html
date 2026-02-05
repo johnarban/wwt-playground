@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8" />
+	<title>Redirecting…</title>
+	<!-- Fallback redirect for non-JS clients -->
+	<meta http-equiv="refresh" content="0; url=./main/" />
+	<link rel="canonical" href="https://johnarban.github.io/wwt-playground/main/" />
+	<script>
+	// Keep querystring + hash, and don’t leave the old URL in browser history
+	const target = new URL("./main/", window.location.href);
+	target.search = window.location.search;
+	target.hash = window.location.hash;
+	window.location.replace(target.toString());
+	</script>
+</head>
+
+<body>
+	<div class="redirect-container">
+		<p>Redirecting to <a href="./main/">/main</a>…</p>
+	</div>
+</body>
+
+</html>
+<style>
+body {
+	background-image: conic-gradient(from 90deg, rgb(164, 116, 81) 0deg, rgb(164, 116, 81) 51.429deg, rgb(156, 152, 129) calc(51.529deg), rgb(156, 152, 129) 102.857deg, rgb(115, 160, 157) calc(102.957deg), rgb(115, 160, 157) 154.286deg, rgb(59, 137, 154) calc(154.386deg), rgb(59, 137, 154) 205.714deg, rgb(9, 91, 121) calc(205.814deg), rgb(9, 91, 121) 257.143deg, rgb(0, 40, 71) calc(257.243deg), rgb(0, 40, 71) 308.571deg, rgb(0, 1, 22) calc(308.671deg), rgb(0, 1, 22) 360deg);
+	background-size: cover;
+	background-position: center center;
+	background-repeat: no-repeat;
+}
+
+div.redirect-container {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-family: sans-serif;
+	font-size: 5rem;
+	height: 100vh;
+}
+
+p {
+	background-color: rgba(255, 255, 255, .5);
+	backdrop-filter: blur(5);
+	padding: 2rem;
+	border-radius: 1rem;
+}
+</style>
