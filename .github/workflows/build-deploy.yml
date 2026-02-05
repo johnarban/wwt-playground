@@ -45,45 +45,12 @@ jobs:
         id: draft
         with:
           cmd: cat package.json | jq -r '.draft // false'
-
-      - name: Checkout gh-pages
-        uses: actions/checkout@v4
-        with:
-          ref: gh-pages
-          path: gh-pages-dir
-
-      - name: Prepare deployment folder
-        id: prepare
-        env:
-          BRANCH: ${{ github.head_ref || github.ref_name }}
-        run: |
-          echo "Current branch: ${BRANCH}"
           
-          # Ensure directory exists (in case checkout failed/branch didn't exist)
-          mkdir -p gh-pages-dir
-          cd gh-pages-dir
-          
-          # Remove git metadata so we treat this as a plain directory of files
-          rm -rf .git
-          
-          echo "Deploying to ${BRANCH} folder."
-          echo "   Removing existing files..."
-          rm -rf $BRANCH
-          mkdir -p $BRANCH
-          echo "   Copying new files..."
-          cp -a ../dist/. $BRANCH/
-          
-          echo "Verifying contents:"
-          ls -la $BRANCH
-          
-          echo "Verifying deployment folder structure:"
-          tree -d .
-          
-
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         if: ${{ steps.draft.outputs.value == 'false' }}
         with:
           branch: gh-pages-test
-          folder: gh-pages-dir
+          folder: dist
           clean: true
+          target-folder: ${{ github.head_ref || github.ref_name }}
