@@ -84,6 +84,6 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@v4
         if: ${{ steps.draft.outputs.value == 'false' }}
         with:
-          branch: gh-pages
+          branch: gh-pages-test
           folder: gh-pages-dir
           clean: true
