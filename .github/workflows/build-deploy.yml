@@ -10,7 +10,7 @@ permissions:
   contents: write
   
 concurrency:
-  group: build-and-deploy
+  group: build-and-deploy-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
