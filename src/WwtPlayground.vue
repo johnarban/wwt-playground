@@ -76,6 +76,7 @@ export interface WwtPlaygroundProps {
   initialCameraParams?: CameraParams;
 }
 
+console.log('starting the playground');
 const store = engineStore();
 
 useWWTKeyboardControls(store);
