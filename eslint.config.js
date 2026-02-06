@@ -64,6 +64,7 @@ export default typescriptEslint.config(
         }
       ],
       "no-unused-vars": "off",
+      "@typescript-eslint/no-inferrable-types": "off",
       "@typescript-eslint/no-unused-vars": [
         "error", {
           "args": "all",
