@@ -1,8 +1,10 @@
 import { createApp, type DirectiveBinding, type Plugin } from "vue";
 import { FundingAcknowledgement, IconButton, CreditLogos } from "@cosmicds/vue-toolkit";
 import WwtPlayground from "./WwtPlayground.vue";
-
+import 'globals';
 import vuetify from "@/plugins/vuetify";
+
+import SesameResolver from "./SesameResolver.vue";
 
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
@@ -53,6 +55,7 @@ createApp(WwtPlayground, {
   .component('icon-button', IconButton)
   .component('funding-acknowledgement', FundingAcknowledgement)
   .component('credit-logos', CreditLogos)
+  .component('sesame-resolver', SesameResolver)
 
   // Mount
   .mount("#app");
