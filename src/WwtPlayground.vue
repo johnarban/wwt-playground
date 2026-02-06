@@ -2,7 +2,7 @@
   <v-app
     id="app"
     :style="cssVars"
-    class="layout-debug"
+    class=""
   >
     <div
       id="main-content"
@@ -32,12 +32,7 @@
 
       <div id="top-content">
         <div id="left-buttons">
-          <icon-button
-            icon="book-open"
-            :color="buttonColor"
-            tooltip-location="start"
-          >
-          </icon-button>
+          <sesame-resolver goto />
         </div>
         <div id="center-buttons">
         </div>
@@ -64,10 +59,14 @@
 
 <script setup lang="ts">
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ref, reactive, computed, onMounted, nextTick } from "vue";
+import { ref, reactive, computed, onMounted, nextTick, useTemplateRef, watch } from "vue";
 import { GotoRADecZoomParams, engineStore } from "@wwtelescope/engine-pinia";
 import { BackgroundImageset, skyBackgroundImagesets, supportsTouchscreen, blurActiveElement, useWWTKeyboardControls, WWTEngineStore, CreditLogos, IconButton } from "@cosmicds/vue-toolkit";
 import { useDisplay } from "vuetify";
+
+import { D2R, R2D } from "@wwtelescope/astro";
+import { simbadResolveCoordinates } from "./simbad_resolvers";
+import { addClickNoDragListeners } from "./onClickNoDrag";
 
 type SheetType = "text" | "video";
 type CameraParams = Omit<GotoRADecZoomParams, "instant">;
@@ -89,7 +88,7 @@ const props = withDefaults(defineProps<WwtPlaygroundProps>(), {
     return {
       raRad: 0,
       decRad: 0,
-      zoomDeg: 60
+      zoomDeg: 10
     };
   }
 });
@@ -103,6 +102,11 @@ const positionSet = ref(false);
 const accentColor = ref("#ffffff");
 const buttonColor = ref("#ffffff");
 
+function resolveTargetAtCoordinatesOnClick(event: MouseEvent) {
+  const {ra, dec} = store.findRADecForScreenPoint({x: event.clientX, y: event.clientY}); // in degrees
+  simbadResolveCoordinates(ra, dec, 60);
+}
+
 onMounted(() => {
   store.waitForReady().then(async () => {
     skyBackgroundImagesets.forEach(iset => backgroundImagesets.push(iset));
@@ -113,6 +117,11 @@ onMounted(() => {
     // If there are layers to set up, do that here!
     layersLoaded.value = true;
   });
+  const el = document.getElementById('wwtcomp0');
+  if (el) {
+    addClickNoDragListeners(el, resolveTargetAtCoordinatesOnClick);
+  }
+  
 });
 
 const ready = computed(() => layersLoaded.value && positionSet.value);
@@ -256,6 +265,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width:100%;
 }
 
 #right-buttons {
@@ -285,6 +295,7 @@ body {
 }
 
 // From Sara Soueidan (https://www.sarasoueidan.com/blog/focus-indicators/) & Erik Kroes (https://www.erikkroes.nl/blog/the-universal-focus-state/)
+/*
 :focus-visible,
 button:focus-visible,
 .focus-visible,
@@ -293,6 +304,7 @@ button:focus-visible,
   box-shadow: 0 0 0 6px black !important;
   border-radius: .125rem;
 }
+*/
 
 .layout-debug {
   #main-content {
