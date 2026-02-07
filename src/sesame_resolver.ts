@@ -15,11 +15,11 @@ function _parseSesameResolver(resolverElement: Element): Exclude<ResolvedObject,
   const jradeg = resolverElement.querySelector('jradeg');
   const jdedeg = resolverElement.querySelector('jdedeg');
   return {
-    oname: oname ? oname.textContent : '<NO oname>',
-    otype: otype ? otype.textContent : '<NO otype>',
-    pos: jpos ? jpos.textContent : '<NO jpos>',
-    raDeg: jradeg ? parseFloat(jradeg.textContent) : NaN,
-    decDeg: jdedeg ? parseFloat(jdedeg.textContent) : NaN,
+    oname: (oname && oname.textContent) ? oname.textContent : '<NO oname>',
+    otype: (otype && otype.textContent) ? otype.textContent : '<NO otype>',
+    pos: (jpos && jpos.textContent) ? jpos.textContent : '<NO jpos>',
+    raDeg: (jradeg && jradeg.textContent) ? parseFloat(jradeg.textContent) : NaN,
+    decDeg: (jdedeg && jdedeg.textContent) ? parseFloat(jdedeg.textContent) : NaN,
   };
 }
 
@@ -39,7 +39,7 @@ interface SesameOptions  {
  *    `includeIdentifiers` : ignored, will not be included in output
  *    `includeFluxes: ignored, will not be included in output
  */
-export async function sesameNameResolver(object_name: string, options?: SesameOptions): Promise<ResolvedObject> {
+export function sesameNameResolver(object_name: string, options?: SesameOptions): Promise<ResolvedObject> {
   // https://vizier.cds.unistra.fr/vizier/doc/sesame.htx
   
   let opt = '-oxp';
@@ -57,22 +57,37 @@ export async function sesameNameResolver(object_name: string, options?: SesameOp
   }
   // we will always do a Simbad first search
   const queryUrl = `https://cds.unistra.fr/cgi-bin/nph-sesame/${opt}/${db}?${object_name}`;
-  const res = await fetch(queryUrl);
+  // const res = await fetch(queryUrl);
   
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(await res.text(), 'application/xml');
-  const errorNode = doc.querySelector("parsererror");
-  if (errorNode) {
-    throw new Error("error while parsing sesame xml");
-  }
-  const resolver = doc.querySelectorAll('Resolver');
-  for (const r of resolver) {
-    const out = _parseSesameResolver(r);
-    if (out) return {name: object_name, ...out};
-  }
-  // should not reach this point because query should have thrown an error if there were no results at all
-  throw new Error("Somehow we reached this far, btw, there are no results for your query");
-  
+  // const parser = new DOMParser();
+  // const doc = parser.parseFromString(await res.text(), 'application/xml');
+  // const errorNode = doc.querySelector("parsererror");
+  // if (errorNode) {
+  //   throw new Error("error while parsing sesame xml");
+  // }
+  // const resolver = doc.querySelectorAll('Resolver');
+  // for (const r of resolver) {
+  //   const out = _parseSesameResolver(r);
+  //   if (out) return {name: object_name, ...out};
+  // }
+  // // should not reach this point because query should have thrown an error if there were no results at all
+  // throw new Error("Somehow we reached this far, btw, there are no results for your query");
+  return fetch(queryUrl)
+    .then(res => res.text())
+    .then(text => {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, 'application/xml');
+      const errorNode = doc.querySelector("parsererror");
+      if (errorNode) {
+        throw new Error("error while parsing sesame xml");
+      }
+      const resolver = doc.querySelectorAll('Resolver');
+      for (const r of resolver) {
+        const out = _parseSesameResolver(r);
+        if (out) return {name: object_name, ...out};
+      };
+      throw new Error("Sesame found zero matches");
+    });
 }
 
 add2Window('sesame', sesameNameResolver);

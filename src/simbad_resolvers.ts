@@ -33,6 +33,8 @@ function parseSimbadASCII(text: string): ResolvedObject {
   let radec: number[] = [];
   if (coords !== '') {
     radec = coords.split(' ').map(v => parseFloat(v));
+  } else {
+    throw new Error("No coords found in returned object");
   }
   
   let sizes: number[] = [];
@@ -43,11 +45,24 @@ function parseSimbadASCII(text: string): ResolvedObject {
       diameter = Math.sqrt(sizes[0]**2 + sizes[1]**2) ;
     }
   }
+  
+  if (radec.length !== 2) {
+    throw new Error(`Coordinates we malformed: coordsRegex returned ${coords}`);
+  }
+  
+  if (object === '') {
+    console.error(`Coordinates Resolved to ${radec}, but no name found`);
+  }
+  if (object === '') {
+    console.error(`No otype found`);
+  }
+  
+  
   return {
     oname: object,
     otype: otype,
-    raDeg: radec.length > 0 ? radec[0] : undefined,
-    decDeg: radec.length > 0 ? radec[1] : undefined,
+    raDeg: radec[0],
+    decDeg: radec[1],
     size: diameter,
   };
 }
@@ -56,7 +71,7 @@ function parseSimbadASCII(text: string): ResolvedObject {
 /**
  * Use Simbad's name resolution service to identify the current coordinates
  */
-export async function simbadResolveCoordinates(raDeg, decDeg, radiusArcSec = 30, epoch = 2000) {
+export function simbadResolveCoordinates(raDeg, decDeg, radiusArcSec = 30, epoch = 2000) {
   const simdadCoordinateQueryUrl = 'https://simbad.cds.unistra.fr/simbad/sim-coo';
   const params = new URLSearchParams({
     'Coord': `${raDeg} ${decDeg}`,
@@ -110,11 +125,9 @@ export async function simbadResolveCoordinates(raDeg, decDeg, radiusArcSec = 30,
     'obj.notesel' : 'off',
   });
   const url = simdadCoordinateQueryUrl + '?' + params.toString();
-  const res = await fetch(url);
-  const text = await res.text();
-  const out =  parseSimbadASCII(text);
-  console.log(out);
-  return out; 
+  return fetch(url)
+    .then((res) => res.text())
+    .then(text => parseSimbadASCII(text));
 }
 
 
@@ -123,7 +136,7 @@ export async function simbadResolveCoordinates(raDeg, decDeg, radiusArcSec = 30,
  * Use Simbad's name resolution service to resolve an object name
  * @param name is the object name to resolve
  */
-export async function simbadNameResolver(name) {
+export function simbadNameResolver(name) {
   const simbadNameQueryUrl = 'https://simbad.cds.unistra.fr/simbad/sim-id';
   const params = new URLSearchParams({
     'Ident': name,
@@ -179,11 +192,9 @@ export async function simbadNameResolver(name) {
     'obj.notesel' : 'off',
   });
   const url = simbadNameQueryUrl + '?' + params.toString();
-  const res = await fetch(url);
-  const text = await res.text();
-  const out =  parseSimbadASCII(text);
-  console.log(out);
-  return out;
+  return fetch(url)
+    .then((res) => res.text())
+    .then(text => parseSimbadASCII(text));
 }
 
 

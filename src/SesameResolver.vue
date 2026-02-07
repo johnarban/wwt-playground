@@ -8,6 +8,7 @@
           variant="solo-filled"
           :error-messages="errorMessage"
           @keyup.enter="resolveName"
+          @keydown.stop
         >
           <template #prepend>
             Go to:
@@ -50,7 +51,7 @@
   </div>
 </template>
 <script lang="ts" setup>
-import {ref, watch} from 'vue';
+import {ref, watch, computed} from 'vue';
 import { ResolvedObject } from './types';
 import { sesameNameResolver } from './sesame_resolver';
 import { simbadNameResolver } from './simbad_resolvers';
@@ -90,19 +91,33 @@ watch(details, (value) => {
   }
 });
 
+const resolver = computed(() => 
+  whichResolver.value === 'sesame' 
+    ? sesameNameResolver 
+    : simbadNameResolver
+);
+
+function setDetails(d: ResolvedObject) {
+  details.value = d;
+  emits('resolved', d);
+  console.log(d);
+  errorMessage.value = '';
+}
+
 function resolveName() {
-  console.log(`resolving ${name.value}`);
   errorMessage.value = '';
   if (name.value) {
-    (whichResolver.value === 'sesame' ? sesameNameResolver : simbadNameResolver)(name.value)
-      .then(d => {
-        details.value = d;
-        emits('resolved', d);
-        console.log(d);
-      })
+    resolver.value(name.value).then(setDetails)
       .catch(() => {
-        errorMessage.value = 'Could not find object';
+        console.error(`${whichResolver.value} failed on first try, trying again...`);
+        if (name.value) return resolver.value(name.value).then(setDetails);
+      })
+      .catch((e: Error) => {
+        errorMessage.value = e.message;
+        console.error(e.message);
       });
+  } else {
+    errorMessage.value = `Enter a valid name. ${name.value} is not valid`;
   }
 }
 </script>
