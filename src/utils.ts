@@ -1,6 +1,6 @@
 // useful utilities and helpers
 
-function zpad(v: number, n = 2, s = '0') {
+function zpad(v: number | string, n = 2, s = '0') {
   return v.toString().padStart(n,s);
 }
 /**
@@ -47,7 +47,7 @@ export function d2hms(d: number) {
  */
 export function d2hmsString(d: number) {
   const {h, m, s} = d2hms(d);
-  return `${zpad(h)} ${zpad(m)} ${s.toFixed(2)}`;
+  return `${zpad(h)} ${zpad(m)} ${zpad(s.toFixed(2),5)}`;
 }
 /** 
  * Convert decimal degrees to a +Degree (arc)Minute (arc)second string
@@ -55,10 +55,29 @@ export function d2hmsString(d: number) {
 export function d2dmsString(v: number) {
   const {d, m, s} = d2dms(v);
   const sign = v < 0 ? '-' : '+'; 
-  return `${sign}${zpad(Math.abs(d))} ${zpad(m)} ${s.toFixed(2)}`;
+  return `${sign}${zpad(Math.abs(d))} ${zpad(m)} ${zpad(s.toFixed(2),5)}`;
 }
 
 // {h,m,s} -> decimal hours
 export function hms2h(val: {h: number , m: number, s: number}) {
   return val.h + val.m/60 + val.s/3600;
 }
+
+
+/** Debounce from 
+ * https://stackoverflow.com/a/75988895/11594175
+ * https://www.joshwcomeau.com/snippets/javascript/debounce/
+ * 
+ */
+
+export const debounce = (callback, wait) => {
+  let timeoutId: number | null = null;
+  return (...args) => {
+    if (timeoutId !== null) {
+      window.clearTimeout(timeoutId);
+    }
+    timeoutId = window.setTimeout(() => {
+      callback(...args);
+    }, wait);
+  };
+};

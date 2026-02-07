@@ -44,6 +44,13 @@
       <!-- This block contains the elements (e.g. the project icons) displayed along the bottom of the screen -->
 
       <div id="bottom-content">
+        <div 
+          v-if="currentView" 
+          id="current-view" 
+        >
+          <div>{{ currentView.ra }} {{ currentView.dec }} </div>
+          | <div>FOV: {{ currentView.fov }} </div>
+        </div>
         <div
           v-if="!smallSize"
           id="body-logos"
@@ -67,6 +74,9 @@ import { useDisplay } from "vuetify";
 import { D2R, R2D } from "@wwtelescope/astro";
 import { simbadResolveCoordinates } from "./simbad_resolvers";
 import { addClickNoDragListeners } from "./onClickNoDrag";
+import { d2dmsString, d2hmsString } from '@/utils';
+
+import { WWTControl } from '@wwtelescope/engine';
 
 type SheetType = "text" | "video";
 type CameraParams = Omit<GotoRADecZoomParams, "instant">;
@@ -117,7 +127,7 @@ onMounted(() => {
     // If there are layers to set up, do that here!
     layersLoaded.value = true;
   });
-  const el = document.getElementById('wwtcomp0');
+  const el = document.getElementById('wwtcmpt0');
   if (el) {
     addClickNoDragListeners(el, resolveTargetAtCoordinatesOnClick);
   }
@@ -140,10 +150,35 @@ const cssVars = computed(() => {
   };
 });
 
-
+function getWWTScreenDimensions() {
+  const renderContext = WWTControl.singleton.renderContext;
+  const fovH = renderContext.get_fovAngle() * D2R;
+  const fovW = fovH * renderContext.width / renderContext.height;
+  return {width: fovW * R2D, height: fovH * R2D};
+}
+const currentView = computed(() => {
+  if (layersLoaded.value) {
+    const ra = store.raRad * R2D;
+    const dec = store.decRad * R2D;
+    const zoomDeg = store.zoomDeg;
+    const roll = store.rollRad * R2D;
+    const {width, height} = getWWTScreenDimensions();
+    return {
+      ra: `${d2hmsString(ra)}`,
+      dec: `${d2dmsString(dec)}`,
+      fov: `${(zoomDeg/6).toFixed(2)}\u00b0`,
+      width: `${width.toFixed(2)}`,
+      height: `${height.toFixed(2)}`,
+      roll: `${roll.toFixed(1)}\u00b0`,
+    };
+  }
+  return null;
+});
 </script>
 
 <style lang="less">
+@import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&family=Source+Sans+3:ital,wght@0,200..900;1,200..900&display=swap');
+
 @font-face {
   font-family: "Highway Gothic Narrow";
   src: url("./assets/HighwayGothicNarrow.ttf");
@@ -323,4 +358,13 @@ button:focus-visible,
   
 }
 
+#current-view {
+  outline: 1px solid wheat;
+  padding: 0.5em 0.5em;
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  align-self: flex-start;
+  font-family: 'Source Code Pro';
+}
 </style>
