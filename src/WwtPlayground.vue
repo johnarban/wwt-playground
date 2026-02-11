@@ -68,6 +68,7 @@ import { ref, reactive, computed, onMounted, nextTick } from "vue";
 import { GotoRADecZoomParams, engineStore } from "@wwtelescope/engine-pinia";
 import { BackgroundImageset, skyBackgroundImagesets, supportsTouchscreen, blurActiveElement, useWWTKeyboardControls, WWTEngineStore, CreditLogos, IconButton } from "@cosmicds/vue-toolkit";
 import { useDisplay } from "vuetify";
+import { Imageset, ImageSetLayer, Place, WWTControl } from "@wwtelescope/engine";
 
 type SheetType = "text" | "video";
 type CameraParams = Omit<GotoRADecZoomParams, "instant">;
@@ -103,6 +104,11 @@ const positionSet = ref(false);
 const accentColor = ref("#ffffff");
 const buttonColor = ref("#ffffff");
 
+const WTML_URL = "./Pleiades260211030923.wtml";
+// const WTML_URL = "./public/new-image-bad-wtml.wtml";
+
+const imagesets = ref<Map<string, Imageset>>(new Map());
+const imagesetLayers = ref<Map<string, Promise<ImageSetLayer>>>(new Map());
 onMounted(() => {
   store.waitForReady().then(async () => {
     skyBackgroundImagesets.forEach(iset => backgroundImagesets.push(iset));
@@ -111,8 +117,84 @@ onMounted(() => {
       instant: true
     }).then(() => positionSet.value = true);
     // If there are layers to set up, do that here!
+    
+    // ==== loading image collection
+    const loadIset = true;
+    if (loadIset) {
+      await store.loadImageCollection({url: WTML_URL, loadChildFolders: true,}) 
+        .then((folder) => {
+          const children = folder.get_children();
+          if (!children) return;
+          children.forEach((child) => {
+            if (!(child instanceof Place)) return;
+            const iset = child.get_backgroundImageset() ?? child.get_studyImageset();
+            if (iset) {
+              imagesets.value.set(child.get_name(), iset);
+            }
+          });
+          return imagesets.value;
+        })
+        .then(layers => {
+          if (layers && layers.size > 0) {
+            let i = 0;
+            for (const [name, iset] of layers) {
+              console.log(iset);
+              const _layerPromise = store.addImageSetLayer({
+                url: iset.get_url(),
+                mode: 'fits',
+                name: iset.get_name(),
+                goto: false
+              });
+              store.gotoRADecZoom({
+                raRad: iset.get_centerX() * Math.PI / 180,
+                decRad: iset.get_centerY() * Math.PI / 180,
+                zoomDeg: iset.get_baseTileDegrees() * Math.max(iset.get_offsetX(), iset.get_offsetY()) * 20,
+                instant: true,
+              });
+              _layerPromise.then(l => {
+                l.set_opacity(0.5);
+                l.set_colorMapperName('viridis');
+                l.setImageScalePhysical(0, 1220, 1255);
+              });
+              i++;
+            }
+          };
+        })
+        .catch(e => {
+          console.error(e);
+        });
+      // ==== done loading image collection
+    } else {
+      await store.loadFitsLayer({
+        url: './Pleiades260211030923-fixed.fits', // for some reason this does not work
+        // url: './new-image.FITS',
+        name: 'test-image',
+        gotoTarget: false,
+      }).then((layer) => {
+        layer.set_colorMapperName('inferno');
+        // @ts-expect-error it is a fits image
+        const vmin = layer.getFitsImage().header['DATAMIN'];
+        // @ts-expect-error it is a fits image
+        const vmax = layer.getFitsImage().header['DATAMAX'];
+        layer.setImageScalePhysical(1, 1220 , 1255);
+        console.log(vmin,vmax);
+        // console.log(layer.getFitsImage()?.computeHistogram(100));
+        return layer.get_imageSet();
+      }).then((iset) => {
+        store.gotoRADecZoom({
+          raRad: iset.get_centerX() * Math.PI / 180,
+          decRad: iset.get_centerY() * Math.PI / 180,
+          //@ts-expect-error _guessZoomSetting does exist
+          zoomDeg: iset._guessZoomSetting() * 6 / 1.5,
+          instant: true,
+        });
+      });
+    }
+    
     layersLoaded.value = true;
   });
+  
+  
 });
 
 const ready = computed(() => layersLoaded.value && positionSet.value);
@@ -309,6 +391,10 @@ button:focus-visible,
     min-height: 1px;
   }
   
+}
+
+canvas {
+  filter: brightness(2.5) contrast(0.9) saturate(1.2);
 }
 
 </style>

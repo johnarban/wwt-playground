@@ -1,0 +1,38 @@
+<Folder MSRCommunityId="0" MSRComponentId="0" Permission="0" Name="Pleiades260211030923" Group="Explorer" Searchable="False">
+  <Place Name="Pleiades260211030923" DataSetType="Sky" RA="3.8879264266471387" Dec="21.631762659420303" Rotation="0" ZoomLevel="119.0">
+    <ForegroundImageSet>
+      <ImageSet       DemUrl=""
+                MSRCommunityId="0"
+                MSRComponentId="0"
+                StockSet="False"
+                Permission="0"
+                Generic="False"
+                DataSetType="Sky"
+                ElevationModel="False"
+                QuadTreeMap=""
+                Projection="SkyImage"
+                Sparse="True"
+                BandPass="Visible"
+                Name="Pleiades260211030923"
+                Url="./Pleiades260211030923-fixed.fits"
+                FileType=".fits"
+                TileLevels="0"
+                WidthFactor="2"
+                BaseTileLevel="0"
+                BaseDegreesPerTile="0.017928731210950368"
+                MeanRadius="0"
+                Rotation="2.507351430674755"
+                BottomsUp="False"
+                CenterY="21.631762659420303"
+                CenterX="58.31889639970708"
+                OffsetX="325.5"
+                OffsetY="250.5"
+                ReferenceFrame="">
+        <Description>description</Description>
+        <Credits>credits</Credits>
+        <CreditsUrl>credits_url</CreditsUrl>
+        <ThumbnailUrl>Pleiades260211030923.FITS</ThumbnailUrl>
+      </ImageSet>
+    </ForegroundImageSet>
+  </Place>
+</Folder>
