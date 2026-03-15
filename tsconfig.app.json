@@ -30,6 +30,7 @@
     "strict": true,
     "jsx": "preserve",
     "importHelpers": true,
+    "ignoreDeprecations": "6.0", // added to ignore downlevelIteration deprecation warning
     "downlevelIteration": true,
     "experimentalDecorators": true,
     "esModuleInterop": true,
