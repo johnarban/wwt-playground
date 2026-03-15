@@ -125,7 +125,7 @@ function toggle3D() {
 import { addToWWTRenderLoop } from "./wwt-hacks";
 import {SimpleLineList, Vector3d, Color } from "@wwtelescope/engine";
 import { DeadSimpleShader } from "./shaders/DeadSimpleShaders";
-
+import { FullScreenQuad } from "./shaders/FullScreenQuad";
 
 onMounted(() => {
   store.waitForReady().then(async () => {
@@ -168,6 +168,11 @@ onMounted(() => {
     addToWWTRenderLoop(() => {
       if (store.$wwt.inst) {
         DeadSimpleShader.use(store.$wwt.inst.ctl.renderContext); // has the gl.drawArrays call internal
+      }
+    });
+    addToWWTRenderLoop(() => {
+      if (store.$wwt.inst) {
+        FullScreenQuad.use(store.$wwt.inst.ctl.renderContext); // has the gl.drawArrays call internal
       }
     });
     skyBackgroundImagesets.forEach(iset => backgroundImagesets.push(iset));
