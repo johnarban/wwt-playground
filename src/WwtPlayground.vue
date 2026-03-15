@@ -2,7 +2,6 @@
   <v-app
     id="app"
     :style="cssVars"
-    class="layout-debug"
   >
     <div
       id="main-content"
@@ -38,6 +37,12 @@
             tooltip-location="start"
           >
           </icon-button>
+          <button 
+            @click="toggle3D" 
+            @keyup.enter="toggle3D"
+          >
+            Switch to {{ in3d ? '2D' : '3D' }}
+          </button>
         </div>
         <div id="center-buttons">
         </div>
@@ -64,7 +69,7 @@
 
 <script setup lang="ts">
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ref, reactive, computed, onMounted, nextTick } from "vue";
+import { ref, reactive, computed, onMounted, nextTick, watch } from "vue";
 import { GotoRADecZoomParams, engineStore } from "@wwtelescope/engine-pinia";
 import { BackgroundImageset, skyBackgroundImagesets, supportsTouchscreen, blurActiveElement, useWWTKeyboardControls, WWTEngineStore, CreditLogos, IconButton } from "@cosmicds/vue-toolkit";
 import { useDisplay } from "vuetify";
@@ -89,7 +94,7 @@ const props = withDefaults(defineProps<WwtPlaygroundProps>(), {
     return {
       raRad: 0,
       decRad: 0,
-      zoomDeg: 60
+      zoomDeg: 360
     };
   }
 });
@@ -103,15 +108,74 @@ const positionSet = ref(false);
 const accentColor = ref("#ffffff");
 const buttonColor = ref("#ffffff");
 
+let in3d = ref(false);
+
+function toggle3D() {
+  if (!in3d.value) {
+    store.setBackgroundImageByName('Solar System');
+    in3d.value = true;
+  } else {
+    if (backgroundImagesets[0]) {
+      store.setBackgroundImageByName(backgroundImagesets[0].imagesetName);
+      in3d.value = false;
+    }
+  }
+};
+
+import { addToWWTRenderLoop } from "./wwt-hacks";
+import {SimpleLineList, Vector3d, Color } from "@wwtelescope/engine";
+
+
 onMounted(() => {
   store.waitForReady().then(async () => {
+    let logOnce = true;
+    addToWWTRenderLoop(() => {
+      /**
+       * Drawing some diagnostic lines on the view. Static 2d lines and dynamic 3d lines
+       */
+      function draw(x: number,y: number, color: string, z?: number) {
+        if (store.$wwt.inst) {
+          const linelist = new SimpleLineList();
+          // the x, y origin is at 0,0 in ra/dec. the extent is physical au
+          // to give 2d perspective in z. set pure2D to false. 
+          // give z coordinates. should be greater z>=1, otherwise they can get clipped
+          linelist.addLine(Vector3d.create(0,0,0), Vector3d.create(x, y, z ?? 0));
+          linelist.pure2D = !in3d.value;
+          linelist.useLocalCenters = false; // if true, this would center it on the page
+          linelist.set_depthBuffered(false); // will only do the local center if set_depthBuffered(true)
+          linelist.drawLines(store.$wwt.inst.ctl.renderContext, 1, Color.fromHex(color) );
+        }
+      }
+      const d = in3d.value ? 100 : 1;
+      draw(d, 0, '#FF0000');
+      draw(-d, 0, '#FFAA00')
+      ;
+      draw(0, d, '#0000FF');
+      draw(0, -d, '#00AAFF');
+      
+      if (in3d.value) { // add a z line
+        draw(0, 0, '#00FF00', d);
+        draw(0, 0, '#00FFAA', -d);
+      }
+      if (logOnce) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        console.log(store.$wwt!.inst!.ctl.renderContext.gl);
+        logOnce = false;
+      }
+      
+    });
+    
     skyBackgroundImagesets.forEach(iset => backgroundImagesets.push(iset));
+    // store.applySetting(['showGrid', true]);
     store.gotoRADecZoom({
       ...props.initialCameraParams,
       instant: true
     }).then(() => positionSet.value = true);
     // If there are layers to set up, do that here!
     layersLoaded.value = true;
+    if (in3d.value) {
+      store.setBackgroundImageByName('Solar System');
+    }
   });
 });
 
@@ -309,6 +373,18 @@ button:focus-visible,
     min-height: 1px;
   }
   
+}
+
+#app button {
+  border: 1px solid white;
+  padding: 4px 8px;
+  border-radius: 9999px;
+  pointer-events: auto;
+}
+
+#app button:hover {
+  background-color: rgb(255, 255, 255, 0.1);
+  color: black;
 }
 
 </style>
