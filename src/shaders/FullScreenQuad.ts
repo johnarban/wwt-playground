@@ -14,46 +14,7 @@ import {
 import SimpleFrag from "./fullScreenQuad.frag?raw";
 import SimpleVert from "./fullScreenQuad.vert?raw";
 
-/**
- * a helper for errors. doesn't do much now
- * but can be hooked up to a div to display them on screen
- */
-function showError(msg: string) {
-  throw(new Error(msg));
-}
-
-type ShaderType = WebGL2RenderingContext['FRAGMENT_SHADER'] | WebGL2RenderingContext['VERTEX_SHADER']
-
-/**
- * Helper function to contain boilerplate for setting up a Fragment or Vertex Shader
- * and showing errors
- * Alot of the structure comes from IndigoCode @sessamekesh tutorials https://indigocode.dev/tutorials/webgl
- * and Adam Adamson @scriptfoundry/WebGL2-Videos-Materials https://www.youtube.com/playlist?list=PLPbmjY2NVO_X1U1JzLxLDdRn4NmtxyQQo
- */
-function setupShader(gl: WebGL2RenderingContext, type: ShaderType, source: string) {
-  const shader = gl.createShader(type);
-  if (shader === null) {
-    showError(`setupShader: createShader returned null for source ${source}`);
-    return;
-  }
-  gl.shaderSource(shader, source);
-  gl.compileShader(shader);
-    
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    const errorMessage = gl.getShaderInfoLog(shader);
-    showError(`Failed to compile shader: ${errorMessage}`);
-  }
-  return shader;
-}
-
-function linkProgram(gl: WebGL2RenderingContext, program: WebGLProgram) {
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    const errorMessage = gl.getProgramInfoLog(program);
-    showError(`Failed to link program: ${errorMessage}`);
-  }
-}
-
+import {showError, setupShader, linkProgram} from './shader-helpers';
 
 // broadly following https://ostefani.dev/tech-notes/webgl-drawing-full-screen-quad
 // set it up like WWT does. but a class would be better i think
@@ -107,7 +68,7 @@ FullScreenQuad.use = function (renderContext: RenderContext) {
       -1, 1, // left, top
       1, -1, // right, bottom
       1, 1, // right, top
-    ].map(v=>v/2)); 
+    ]); 
     const buffer = gl.createBuffer(); // create the buffer
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer); // it should be an ARRAY_BUFFER
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW); // writes only to the last bound buffer

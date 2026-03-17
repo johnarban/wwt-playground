@@ -13,7 +13,9 @@ export async function waitForWWTReady(store: ReturnType<typeof engineStore>): Pr
   });
 }
 
-
+export function renderOneFrame() {
+  WWTControl.singleton.renderOneFrame();
+}
 
 
 const addedToFrame: (()=>void)[] = [];
