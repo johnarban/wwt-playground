@@ -48,8 +48,8 @@
           :class="{'wwt-use-pointer': !imagesHidden, 'opacity-slider': true, 'cross-fade-slider': true}"
           type="range"
           :min="0" 
-          :max="100" 
-          :step="1"
+          :max="1" 
+          :step="0.001"
         />
         <div class="foreground-background-opacity-control">
           <button 
@@ -125,33 +125,50 @@ const buttonColor = ref("#ffffff");
 
 const starsImageName = ref('');
 const linesImageName = ref('');
-import { ImageSetLayer } from "@wwtelescope/engine";
+import { ImageSetLayer, WWTControl } from "@wwtelescope/engine";
 const starsImageset = ref<ImageSetLayer | null>(null);
 const linesImageset = ref<ImageSetLayer | null>(null);
+
+function clamp(x: number, min = 0, max = 1) {
+  return Math.max(min, Math.min(max, x));
+}
+function lerpf(a: number, b: number, c: number, d: number, x: number) {
+  if (a === b) return c; // should be undefined, but i don't want the TS headache;
+  const xprime = clamp((x - a) / (b - a)); // clamp to expect range
+  return xprime * (d - c) + c;
+}
 const crossFade = ref(0);
 const sphereXFade = ref(1.0);
-const starOpacity = computed(() => sphereXFade.value * Math.max(.5, crossFade.value / 100));
-const linesOpacity = computed(() => sphereXFade.value * Math.max(.5, 1 - crossFade.value / 100));
+const switchPoint = 0.5;
+const switchOverOpacity = 0.63; // magic number
+const minUnderOpacity = 1;
+const linesOnTop = computed(() => crossFade.value <= switchPoint);
+const starOpacity = computed(() => {
+  return sphereXFade.value * (linesOnTop.value ? minUnderOpacity : lerpf(switchPoint, 1, switchOverOpacity, 1, crossFade.value));
+});
+const linesOpacity = computed(() => {
+  return sphereXFade.value * (linesOnTop.value ? lerpf(0, switchPoint, 1, switchOverOpacity, crossFade.value) : minUnderOpacity);
+});
 function setLayerOrder() {
-  if (starsImageset.value && linesImageset.value) {
-    store.setImageSetLayerOrder({
-      id: starsImageset.value.id.toString(),
-      order: crossFade.value > 50 ? 0 : 1
-    });
-    
-    store.setImageSetLayerOrder({
-      id: linesImageset.value.id.toString(),
-      order: crossFade.value <= 50 ? 1 : 0
-    });
-  }
+  if (!starsImageset.value || !linesImageset.value) return;
+  store.setImageSetLayerOrder({
+    id: starsImageset.value.id.toString(),
+    order: !linesOnTop.value ? 0 : 1
+  });
+  store.setImageSetLayerOrder({
+    id: linesImageset.value.id.toString(),
+    order: linesOnTop.value ? 1 : 0
+  });
+  WWTControl.singleton.renderOneFrame();
 }
-watch([starOpacity,  linesOpacity, crossFade], (op, old) => {
+watch([starOpacity,  linesOpacity], (op, old) => {
   starsImageset.value?.set_opacity(starOpacity.value);
   linesImageset.value?.set_opacity(linesOpacity.value);
-  if ((old[2] < 50 && op[2] >= 50) || (old[2] > 50 && op[2] <= 50) ) {
-    setLayerOrder();
-  }
-});
+}, { immediate: true });
+watch(linesOnTop, (v, newV) => {
+  setLayerOrder();
+}, {immediate: true});
+
 const imagesHidden = ref(false);
 function toggleImages() {
   starsImageset.value?.set_opacity(imagesHidden.value ? starOpacity.value : 0);
@@ -178,7 +195,7 @@ function addImageSetLayer(url: string, nameRef: Ref<string | null>, isetRef: Ref
 onMounted(() => {
   store.waitForReady().then(async () => {
     skyBackgroundImagesets.forEach(iset => backgroundImagesets.push(iset));
-    store.setBackgroundImageByName("Deep Star Maps 2020");
+    // store.setBackgroundImageByName("Deep Star Maps 2020");
 
     store.applySetting(['galacticMode', true]);
     positionSet.value = true;
