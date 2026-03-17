@@ -68,13 +68,3 @@ declare module "@wwtelescope/engine" {
   
 
 };
-
-
-// import type { WWTInstance } from "@wwtelescope/engine-helpers";
-import { WWTGlobalState } from "@wwtelescope/engine-pinia/src/store";
-
-declare module "@wwtelescope/engine-pinia" {
-  interface WWTEnginePiniaState {
-    $wwt: WWTGlobalState;
-  }
-}
