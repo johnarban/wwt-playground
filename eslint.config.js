@@ -94,9 +94,7 @@ export default typescriptEslint.config(
     languageOptions: {
       parser: eslintVueParser,
       parserOptions: {
-        parser: {
-          ts: typescriptEslint.parser, 
-        },
+        parser: typescriptEslint.parser,
         extraFileExtensions: ['.vue'],
       },
     },
