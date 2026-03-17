@@ -1,5 +1,4 @@
 node_modules/
 .yarn/
-*/*
 .DS_Store
 tsconfig.tsbuildinfo
