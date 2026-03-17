@@ -43,6 +43,10 @@
           >
             Switch to {{ in3d ? '2D' : '3D' }}
           </button>
+          <AddShader
+            :in3d="in3d"
+            :location="location"
+          />
         </div>
         <div id="center-buttons">
         </div>
@@ -54,6 +58,18 @@
       <!-- This block contains the elements (e.g. the project icons) displayed along the bottom of the screen -->
 
       <div id="bottom-content">
+        <div id="time-slider-container">
+          <input
+            id="time-slider"
+            v-model.number="timeOfDay"
+            type="range"
+            min="0"
+            max="86399"
+            step="60"
+            @input="onTimeChange"
+          />
+          <span id="time-label">{{ timeLabel }}</span>
+        </div>
         <div
           v-if="!smallSize"
           id="body-logos"
@@ -122,65 +138,59 @@ function toggle3D() {
   }
 };
 
-import { addToWWTRenderLoop } from "./wwt-hacks";
+import { addToWWTRenderLoop , renderOneFrame} from "./wwt-hacks";
 import {SimpleLineList, Vector3d, Color } from "@wwtelescope/engine";
 import { DeadSimpleShader } from "./shaders/DeadSimpleShaders";
 import { FullScreenQuad } from "./shaders/FullScreenQuad";
+import { SunTrackerShader } from "./shaders/SunTrackerShader";
+import { AstroCalc, SpaceTimeController, Settings } from "@wwtelescope/engine";
+import { SolarSystemObjects } from "@wwtelescope/engine-types";
+import AddShader from "./components/AddShader.vue";
+
+interface LocationDeg {
+  lat: number,
+  lon: number
+}
+const defaultLocation: LocationDeg = { lat: 42.3736,lon: -71.1097};
+const location = ref(defaultLocation);
+
+const timeOfDay = ref(18 * 3600); // seconds from midnight, default 18:00
+const timeLabel = computed(() => {
+  const h = Math.floor(timeOfDay.value / 3600);
+  const m = Math.floor((timeOfDay.value % 3600) / 60);
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+});
+
+function onTimeChange() {
+  const h = Math.floor(timeOfDay.value / 3600);
+  const m = Math.floor((timeOfDay.value % 3600) / 60);
+  const s = timeOfDay.value % 60;
+  store.setTime(new Date(2026, 2, 20, h, m, s));
+}
+
+function setWWTLocation(location: LocationDeg) {
+  store.applySetting(['locationLat', location.lat]);
+  store.applySetting(['locationLng', location.lon]);
+}
 
 onMounted(() => {
   store.waitForReady().then(async () => {
     let logOnce = true;
-    addToWWTRenderLoop(() => {
-      /**
-       * Drawing some diagnostic lines on the view. Static 2d lines and dynamic 3d lines
-       */
-      function draw(x: number,y: number, color: string, z?: number) {
-        if (store.$wwt.inst) {
-          const linelist = new SimpleLineList();
-          // the x, y origin is at 0,0 in ra/dec. the extent is physical au
-          // to give 2d perspective in z. set pure2D to false. 
-          // give z coordinates. should be greater z>=1, otherwise they can get clipped
-          linelist.addLine(Vector3d.create(0,0,0), Vector3d.create(x, y, z ?? 0));
-          linelist.pure2D = !in3d.value;
-          linelist.useLocalCenters = false; // if true, this would center it on the page
-          linelist.set_depthBuffered(false); // will only do the local center if set_depthBuffered(true)
-          linelist.drawLines(store.$wwt.inst.ctl.renderContext, 1, Color.fromHex(color) );
-        }
-      }
-      const d = in3d.value ? 100 : 1;
-      draw(d, 0, '#FF0000');
-      draw(-d, 0, '#FFAA00')
-      ;
-      draw(0, d, '#0000FF');
-      draw(0, -d, '#00AAFF');
-      
-      if (in3d.value) { // add a z line
-        draw(0, 0, '#00FF00', d);
-        draw(0, 0, '#00FFAA', -d);
-      }
-      if (logOnce) {
-        console.log(store.$wwt!.inst!.ctl.renderContext.gl);
-        logOnce = false;
-      }
-      
-    });
     
-    addToWWTRenderLoop(() => {
-      if (store.$wwt.inst) {
-        DeadSimpleShader.use(store.$wwt.inst.ctl.renderContext); // has the gl.drawArrays call internal
-      }
-    });
-    addToWWTRenderLoop(() => {
-      if (store.$wwt.inst) {
-        FullScreenQuad.use(store.$wwt.inst.ctl.renderContext); // has the gl.drawArrays call internal
-      }
-    });
+    store.applySetting(['localHorizonMode', true]);
+    setWWTLocation(location.value);
+    store.applySetting(['showAltAzGrid', true]);
+    store.setClockRate(0);
+    store.setTime(new Date(2026, 2, 20, 18, 0, 0));
+    
     skyBackgroundImagesets.forEach(iset => backgroundImagesets.push(iset));
     // store.applySetting(['showGrid', true]);
-    store.gotoRADecZoom({
-      ...props.initialCameraParams,
-      instant: true
-    }).then(() => positionSet.value = true);
+    renderOneFrame();
+    // store.gotoRADecZoom({
+    //   ...props.initialCameraParams,
+    //   instant: true
+    // }).then(() => positionSet.value = true);
+    positionSet.value = true;
     // If there are layers to set up, do that here!
     layersLoaded.value = true;
     if (in3d.value) {
@@ -350,6 +360,32 @@ body {
   pointer-events: none;
   align-items: center;
   gap: 5px;
+}
+
+#time-slider-container {
+  position: absolute;
+  bottom: 3rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80vw;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  pointer-events: auto;
+}
+
+#time-slider {
+  flex: 1;
+  cursor: pointer;
+  accent-color: #fff;
+}
+
+#time-label {
+  color: #fff;
+  font-family: monospace;
+  font-size: 1rem;
+  text-shadow: 0 0 4px rgba(0,0,0,0.8);
+  white-space: nowrap;
 }
 
 #bottom-content {
