@@ -14,7 +14,7 @@ import {
 import SimpleFrag from "./fullScreenQuad.frag?raw";
 import SimpleVert from "./fullScreenQuad.vert?raw";
 
-import {showError, setupShader, linkProgram} from './shader-helpers';
+import {showError, setupShader, linkProgram} from '@/shaders/shader-helpers';
 
 // broadly following https://ostefani.dev/tech-notes/webgl-drawing-full-screen-quad
 // set it up like WWT does. but a class would be better i think

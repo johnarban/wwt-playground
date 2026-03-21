@@ -21,9 +21,9 @@ import { ref, computed ,onMounted, Ref} from 'vue';
 
 import { addToWWTRenderLoop , renderOneFrame} from "@/wwt-hacks";
 import {SimpleLineList, Vector3d, Color } from "@wwtelescope/engine";
-import { DeadSimpleShader } from "@/shaders/DeadSimpleShaders";
-import { FullScreenQuad } from "@/shaders/FullScreenQuad";
-import { SunTrackerShader } from "@/shaders/SunTrackerShader";
+import { DeadSimpleShader } from "@/shaders/DeadSimpleShader/DeadSimpleShaders";
+import { FullScreenQuad } from "@/shaders/FullScreenQuad/FullScreenQuad";
+import { SunTrackerShader } from "@/shaders/SunTracker/SunTrackerShader";
 import { AstroCalc, SpaceTimeController, Settings, WWTControl } from "@wwtelescope/engine";
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
 import { engineStore } from '@wwtelescope/engine-pinia';
@@ -112,7 +112,7 @@ allShaders.map(v => {
 
 
 
-const selectedShader = ref<typeof allShaders[0]['name']>('None');
+const selectedShader = ref<typeof allShaders[0]['name']>('Sun Tracker');
 
 const selectedShaderFunction = computed(() => {
   if (shaders.has(selectedShader.value)) {

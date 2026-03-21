@@ -140,7 +140,8 @@ function toggle3D() {
 
 import { addToWWTRenderLoop , renderOneFrame} from "./wwt-hacks";
 import {SimpleLineList, Vector3d, Color } from "@wwtelescope/engine";
-import { DeadSimpleShader } from "./shaders/DeadSimpleShaders";
+import { D2R } from "@wwtelescope/astro";
+import { DeadSimpleShader } from "./shaders/DeadSimpleShader/DeadSimpleShaders";
 import { FullScreenQuad } from "./shaders/FullScreenQuad";
 import { SunTrackerShader } from "./shaders/SunTrackerShader";
 import { AstroCalc, SpaceTimeController, Settings } from "@wwtelescope/engine";
@@ -182,14 +183,17 @@ onMounted(() => {
     store.applySetting(['showAltAzGrid', true]);
     store.setClockRate(0);
     store.setTime(new Date(2026, 2, 20, 18, 0, 0));
-    
     skyBackgroundImagesets.forEach(iset => backgroundImagesets.push(iset));
     // store.applySetting(['showGrid', true]);
     renderOneFrame();
-    // store.gotoRADecZoom({
-    //   ...props.initialCameraParams,
-    //   instant: true
-    // }).then(() => positionSet.value = true);
+    const sunPos = AstroCalc.getPlanet(SpaceTimeController.utcToJulian(store.currentTime), SolarSystemObjects.sun, 0,0,0);
+    store.gotoRADecZoom({
+      raRad: sunPos.RA * D2R,
+      decRad: sunPos.dec * D2R,
+      zoomDeg: props.initialCameraParams.zoomDeg,
+      rollRad: props.initialCameraParams.rollRad,
+      instant: true
+    }).then(() => positionSet.value = true);
     positionSet.value = true;
     // If there are layers to set up, do that here!
     layersLoaded.value = true;

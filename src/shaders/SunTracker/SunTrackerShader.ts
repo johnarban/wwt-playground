@@ -13,7 +13,7 @@ import { SolarSystemObjects } from "@wwtelescope/engine-types";
 import SkyFrag from "./sunTrackerShader.frag?raw";
 import SkyVert from "./sunTrackerShader.vert?raw";
 
-import {showError, setupShader, linkProgram} from './shader-helpers';
+import {showError, setupShader, linkProgram} from '@/shaders/shader-helpers';
 
 export function SunTrackerShader() { };
 export namespace SunTrackerShader {
