@@ -18,7 +18,29 @@ export function renderOneFrame() {
 }
 
 
+
 const addedToFrame: (()=>void)[] = [];
+let isRenderLoopPatched = false;
+function ensureRenderLoopPatched() {
+  if (isRenderLoopPatched) return;
+  
+  const originalRenderOneFrame = WWTControl.singleton.renderOneFrame;
+  const newRenderOneFrame = function() {
+    originalRenderOneFrame.call(WWTControl.singleton);
+    
+    const callbacks = addedToFrame.slice();
+    for (const cb of callbacks) {
+      try {
+        cb();
+      } catch(e) {
+        console.error('Error from added frame',e);
+      }
+    }
+  };
+  WWTControl.singleton.renderOneFrame = newRenderOneFrame;
+  isRenderLoopPatched = true;
+}
+
 /**
  * Add a callback that runs once per WorldWide Telescope render frame by patching
  * `WWTControl.singleton.renderOneFrame`.
@@ -34,18 +56,22 @@ const addedToFrame: (()=>void)[] = [];
  */
 export function addToWWTRenderLoop(cb: () => void, preRender?: boolean) {
   // don't add the same function more than once
-  if (addedToFrame.includes(cb)) {
+  if (addedToFrame.indexOf(cb) !== -1) {
     console.warn(`Attempted to add ${cb} already in render loop. Skipping`);
     return;
   }
+  
+  ensureRenderLoopPatched();
   // pre-render the frame before adding // default is undefined
   if (preRender) WWTControl.singleton.renderOneFrame();
   
-  const renderOneFrame = WWTControl.singleton.renderOneFrame;
-  const newFrameRender = function() { 
-    renderOneFrame.call(WWTControl.singleton);
-    cb();
-  };
   addedToFrame.push(cb);
-  WWTControl.singleton.renderOneFrame = newFrameRender;
+}
+
+
+export function removeFromWWTRenderLoop(cb: () => void) {
+  const idx = addedToFrame.indexOf(cb);
+  if (idx === -1) return;
+  // begin removing items at idx, and remove just 1
+  addedToFrame.splice(idx, 1);
 }
