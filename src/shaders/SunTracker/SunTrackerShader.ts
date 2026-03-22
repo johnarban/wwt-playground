@@ -27,6 +27,7 @@ export namespace SunTrackerShader {
   export let aPosition: number;
   export let projMatLoc: WebGLUniformLocation;
   export let mvMatLoc: WebGLUniformLocation;
+  export let aspectRatioLoc: WebGLUniformLocation;
   
   
 }
@@ -47,6 +48,7 @@ SunTrackerShader.init = function (renderContext: RenderContext) {
   SunTrackerShader.projMatLoc = gl.getUniformLocation(prog, 'uPMatrix')!;
   SunTrackerShader.mvMatLoc = gl.getUniformLocation(prog, 'uMVMatrix')!;
   SunTrackerShader.uSunPosition = gl.getUniformLocation(prog, 'uSunPosition')!;
+  SunTrackerShader.aspectRatioLoc = gl.getUniformLocation(prog, 'uAspectRatio')!;
   SunTrackerShader.aPosition = gl.getAttribLocation(prog, 'aPosition');
   
   SunTrackerShader.initialized = true;
@@ -69,6 +71,7 @@ SunTrackerShader.use = function (renderContext: RenderContext, lat: number, lon:
   const pMat = renderContext.get_projection();
   gl.uniformMatrix4fv(SunTrackerShader.mvMatLoc, false, mvMat.floatArray()); // transpose = false;
   gl.uniformMatrix4fv(SunTrackerShader.projMatLoc, false, pMat.floatArray()); // transpose = false;
+  gl.uniform1f(SunTrackerShader.aspectRatioLoc, gl.canvas.width / gl.canvas.height);
   
   
   // ---- Zenith direction (unit vector in WWT equatorial coords) ----

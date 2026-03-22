@@ -5,8 +5,12 @@ varying vec2 vSunPositionUv;
 varying vec2 vpixelPosition;
 varying float vSunVisible;
 
+uniform float uAspectRatio;
+
 void main() {    
-    float dist = length(vpixelPosition - vSunPositionUv); 
+    vec2 delta = vpixelPosition - vSunPositionUv;
+    delta.x *= uAspectRatio;
+    float dist = length(delta);
     if (dist <= 0.075) {
         gl_FragColor = vec4(1.0, 0.0, 0.0,  0.7 * vSunVisible); // set opacity to 0 if behind camera
     } else {
