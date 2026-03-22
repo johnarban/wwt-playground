@@ -37,6 +37,7 @@
             tooltip-location="start"
           >
           </icon-button>
+          <WWTTimeControl />
           <button 
             @click="toggle3D" 
             @keyup.enter="toggle3D"
@@ -139,14 +140,11 @@ function toggle3D() {
 };
 
 import { addToWWTRenderLoop , renderOneFrame} from "./wwt-hacks";
-import {SimpleLineList, Vector3d, Color } from "@wwtelescope/engine";
 import { D2R } from "@wwtelescope/astro";
-import { DeadSimpleShader } from "./shaders/DeadSimpleShader/DeadSimpleShaders";
-import { FullScreenQuad } from "./shaders/FullScreenQuad";
-import { SunTrackerShader } from "./shaders/SunTrackerShader";
 import { AstroCalc, SpaceTimeController, Settings } from "@wwtelescope/engine";
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
 import AddShader from "./components/AddShader.vue";
+import WWTTimeControl from "./components/WWTTimeControl.vue";
 
 interface LocationDeg {
   lat: number,
@@ -164,10 +162,19 @@ const timeLabel = computed(() => {
 
 function onTimeChange() {
   const h = Math.floor(timeOfDay.value / 3600);
-  const m = Math.floor((timeOfDay.value % 3600) / 60);
-  const s = timeOfDay.value % 60;
-  store.setTime(new Date(2026, 2, 20, h, m, s));
+  const m = Math.floor((timeOfDay.value % 3600) / 60) ;
+  const s = Math.floor(timeOfDay.value % 60);
+  if (ready.value) {
+    store.setClockSync(false);
+    const today = store.currentTime;
+    store.setTime(new Date(today.getFullYear(), today.getMonth(), today.getDate(), h, m, s));
+  }
 }
+
+watch(() => store.currentTime, (date) => {
+  const seconds = date.getHours() * 3600 + date.getMinutes() * 60 + date.getSeconds();
+  timeOfDay.value = seconds;
+});
 
 function setWWTLocation(location: LocationDeg) {
   store.applySetting(['locationLat', location.lat]);
@@ -181,7 +188,8 @@ onMounted(() => {
     store.applySetting(['localHorizonMode', true]);
     setWWTLocation(location.value);
     store.applySetting(['showAltAzGrid', true]);
-    store.setClockRate(0);
+    store.setClockRate(1000);
+    store.setClockSync(false);  // need this to prevent store.currentTime from being constantly set
     store.setTime(new Date(2026, 2, 20, 18, 0, 0));
     skyBackgroundImagesets.forEach(iset => backgroundImagesets.push(iset));
     // store.applySetting(['showGrid', true]);
@@ -343,6 +351,7 @@ body {
 #left-buttons {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 10px;
 }
 
@@ -399,14 +408,14 @@ body {
 }
 
 // From Sara Soueidan (https://www.sarasoueidan.com/blog/focus-indicators/) & Erik Kroes (https://www.erikkroes.nl/blog/the-universal-focus-state/)
-:focus-visible,
-button:focus-visible,
-.focus-visible,
-.v-selection-control--focus-visible .v-selection-control__input {
-  outline: 9px double white !important;
-  box-shadow: 0 0 0 6px black !important;
-  border-radius: .125rem;
-}
+// :focus-visible,
+// button:focus-visible,
+// .focus-visible,
+// .v-selection-control--focus-visible .v-selection-control__input {
+//   outline: 9px double white !important;
+//   box-shadow: 0 0 0 6px black !important;
+//   border-radius: .125rem;
+// }
 
 .layout-debug {
   #main-content {
