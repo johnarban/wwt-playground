@@ -28,6 +28,7 @@ export namespace SunTrackerShader {
   export let projMatLoc: WebGLUniformLocation;
   export let mvMatLoc: WebGLUniformLocation;
   export let aspectRatioLoc: WebGLUniformLocation;
+  export let invWorldViewMatLoc: WebGLUniformLocation;
   
   
 }
@@ -49,6 +50,7 @@ SunTrackerShader.init = function (renderContext: RenderContext) {
   SunTrackerShader.mvMatLoc = gl.getUniformLocation(prog, 'uMVMatrix')!;
   SunTrackerShader.uSunPosition = gl.getUniformLocation(prog, 'uSunPosition')!;
   SunTrackerShader.aspectRatioLoc = gl.getUniformLocation(prog, 'uAspectRatio')!;
+  SunTrackerShader.invWorldViewMatLoc = gl.getUniformLocation(prog, 'uInverseWorldViewMatrix')!;
   SunTrackerShader.aPosition = gl.getAttribLocation(prog, 'aPosition');
   
   SunTrackerShader.initialized = true;
@@ -69,9 +71,11 @@ SunTrackerShader.use = function (renderContext: RenderContext, lat: number, lon:
   // setup matrices
   const mvMat = Matrix3d.multiplyMatrix(renderContext.get_world(), renderContext.get_view());
   const pMat = renderContext.get_projection();
+  const inverseWorldView = Matrix3d.invertMatrix(mvMat);
   gl.uniformMatrix4fv(SunTrackerShader.mvMatLoc, false, mvMat.floatArray()); // transpose = false;
   gl.uniformMatrix4fv(SunTrackerShader.projMatLoc, false, pMat.floatArray()); // transpose = false;
   gl.uniform1f(SunTrackerShader.aspectRatioLoc, gl.canvas.width / gl.canvas.height);
+  gl.uniformMatrix4fv(SunTrackerShader.invWorldViewMatLoc, false, inverseWorldView.floatArray()); // transpose = false;
   
   
   // ---- Zenith direction (unit vector in WWT equatorial coords) ----
