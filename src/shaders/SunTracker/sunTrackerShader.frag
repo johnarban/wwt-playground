@@ -3,6 +3,7 @@ precision highp float;
 
 varying vec2 vPixelPosition;
 varying float vSunVisible;
+varying vec2 vSunClipSpace;
 
 uniform float uAspectRatio;
 
@@ -33,6 +34,7 @@ bool withinAngularDistance(vec3 a, vec3 b, float limit) {
 }
 
 void main() {    
+    /* // Track the Sun in real, coordinate space
     vec3 currentCoord = skyDirFromNdc(vPixelPosition); // get's the 3d sphere coordinate
     // float dist = sphericalDistance(normalize(uSunPosition), currentCoord);
     // // 0 degrees from the sun -> white, 180 degrees away -> black
@@ -44,5 +46,19 @@ void main() {
         gl_FragColor = vec4(1.0,0.0,0.0, 0.7);
         return;
     } 
+    gl_FragColor = vec4(0.0,0.0,0.0, 0);
+    */
+    
+    // Track the Sun in clip (NDC) space
+    
+    // direction doesn't really matter, but. we want vector from sun to pixel
+    // the vector a - b = c, c points from tip of b to tip of a
+    vec2 vectorSub = vPixelPosition - vSunClipSpace;
+    vectorSub.x = vectorSub.x * uAspectRatio;
+    float dist = length(vectorSub);
+    if (dist <= 0.075) {
+        gl_FragColor = vec4(1.0,0.0,0.0, 0.7);
+        return;
+    }
     gl_FragColor = vec4(0.0,0.0,0.0, 0);
 }
