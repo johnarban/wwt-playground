@@ -1,18 +1,29 @@
 <!--  -->
 <template>
-  <v-radio-group
-    v-model="selectedShader"
-    class="pointer-events-auto"
-    label="Shader"
-  >
-    <v-radio 
-      v-for="shaderName in shaders.keys()"
-      :key="shaderName"
-      :label="shaderName"
-      :value="shaderName"
+  <div>
+    <v-radio-group
+      v-model="selectedShader"
+      class="pointer-events-auto"
+      label="Shader"
     >
-    </v-radio>
-  </v-radio-group>
+      <v-radio 
+        v-for="shaderName in shaders.keys()"
+        :key="shaderName"
+        :label="shaderName"
+        :value="shaderName"
+      >
+      </v-radio>
+    </v-radio-group>
+    <div 
+      v-if="selectedShader === 'Sun Tracker'"
+      class="pointer-events-auto" 
+    >
+      <v-checkbox
+        v-model="usePixelScale"
+        label="Use Screen Scale"
+      />
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -86,15 +97,16 @@ const fullscreenshader = {
   }
 };
 
+const usePixelScale = ref(true);
 const suntrackershader = {
   name: "Sun Tracker",
   code: () => {
     if (!in3d) {
+      SunTrackerShader.setScale(usePixelScale.value ? 'screen' : 'world');
       SunTrackerShader.use(WWTControl.singleton.renderContext, location.lat, location.lon);
     }
   }
 };
-
 
 const allShaders = [
   linesShader,
