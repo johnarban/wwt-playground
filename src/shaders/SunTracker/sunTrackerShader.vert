@@ -12,18 +12,7 @@ varying float vSunVisible;  // 1.0 if sun is in front of camera, 0.0 if behind
 varying vec2 vSunClipSpace; // the sun's location in clip space
 
 void main() {
-    /* // Track the Sun in real, coordinate space
-    // Transform sun position to screen space
-    vec4 sunClipSpace = uPMatrix * uMVMatrix * vec4(uSunPosition, 1.0);
-    // Check if sun is in front of camera (positive w means in front)
-    vSunVisible = sunClipSpace.w > 0.0 ? 1.0 : 0.0;
-
-    vPixelPosition = aPosition;  // aPosition is already in NDC space [-1, 1]
-    gl_Position = vec4(aPosition, 0.0, 1.0);
-    */
-    
-    // Track the Sun in clip (NDC) space
-    // Transform sun position to screen space
+    /* always provide the SunClipSpace position */
     vec4 sunClipSpace = uPMatrix * uMVMatrix * vec4(uSunPosition, 1.0);
     // Check if sun is in front of camera (positive w means in front)
     vSunVisible = sunClipSpace.w > 0.0 ? 1.0 : 0.0;

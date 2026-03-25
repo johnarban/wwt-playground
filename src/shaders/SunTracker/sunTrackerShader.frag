@@ -10,6 +10,7 @@ uniform float uAspectRatio;
 uniform vec3 uSunPosition;
 uniform mat4 uInverseWorldViewMatrix;
 uniform mat4 uPMatrix;
+uniform bool uUsePixelSize;
 
 const float PI = 3.14159265358979323846; // 20 digits of PI
 
@@ -49,15 +50,24 @@ void main() {
     gl_FragColor = vec4(0.0,0.0,0.0, 0);
     */
     
-    // Track the Sun in clip (NDC) space
+    float radius = 0.0;
+    bool inCircle = false;
+    if (uUsePixelSize) {
+        vec2 vectorSub = vPixelPosition - vSunClipSpace;
+        vectorSub.x = vectorSub.x * uAspectRatio;
+        float dist = length(vectorSub);
+        inCircle = dist <= 0.075;
+    } else {
+        vec3 currentCoord = skyDirFromNdc(vPixelPosition); // get's the 3d sphere coordinate
+        // float dist = sphericalDistance(normalize(uSunPosition), currentCoord);
+        inCircle = sphericalDistance(normalize(uSunPosition), currentCoord) <= (15.0 / 60.) * PI / 180.0;
+    }
     
     // direction doesn't really matter, but. we want vector from sun to pixel
     // the vector a - b = c, c points from tip of b to tip of a
-    vec2 vectorSub = vPixelPosition - vSunClipSpace;
-    vectorSub.x = vectorSub.x * uAspectRatio;
-    float dist = length(vectorSub);
-    if (dist <= 0.075) {
-        gl_FragColor = vec4(1.0,0.0,0.0, 0.7);
+    
+    if (inCircle) {
+        gl_FragColor = vec4(1.0,0.0,0.0, 0.7 * vSunVisible);
         return;
     }
     gl_FragColor = vec4(0.0,0.0,0.0, 0);

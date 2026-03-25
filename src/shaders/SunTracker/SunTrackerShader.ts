@@ -15,6 +15,8 @@ import SkyVert from "./sunTrackerShader.vert?raw";
 
 import {showError, setupShader, linkProgram} from '@/shaders/shader-helpers';
 
+type SizeScale = 'screen' | 'world'
+
 export function SunTrackerShader() { };
 export namespace SunTrackerShader {
   export let _frag: WebGLShader | undefined;
@@ -29,6 +31,9 @@ export namespace SunTrackerShader {
   export let mvMatLoc: WebGLUniformLocation;
   export let aspectRatioLoc: WebGLUniformLocation;
   export let invWorldViewMatLoc: WebGLUniformLocation;
+  export let usePixelSize: WebGLUniformLocation;
+  // eslint-disable-next-line prefer-const
+  export let sizeScale: SizeScale = 'screen';
   
   
 }
@@ -51,9 +56,14 @@ SunTrackerShader.init = function (renderContext: RenderContext) {
   SunTrackerShader.uSunPosition = gl.getUniformLocation(prog, 'uSunPosition')!;
   SunTrackerShader.aspectRatioLoc = gl.getUniformLocation(prog, 'uAspectRatio')!;
   SunTrackerShader.invWorldViewMatLoc = gl.getUniformLocation(prog, 'uInverseWorldViewMatrix')!;
+  SunTrackerShader.usePixelSize = gl.getUniformLocation(prog, 'uUsePixelSize')!;
   SunTrackerShader.aPosition = gl.getAttribLocation(prog, 'aPosition');
   
   SunTrackerShader.initialized = true;
+};
+
+SunTrackerShader.setScale = function (scale: SizeScale) {
+  SunTrackerShader.sizeScale = scale;
 };
 
 SunTrackerShader.use = function (renderContext: RenderContext, lat: number, lon: number) {
@@ -76,6 +86,7 @@ SunTrackerShader.use = function (renderContext: RenderContext, lat: number, lon:
   gl.uniformMatrix4fv(SunTrackerShader.projMatLoc, false, pMat.floatArray()); // transpose = false;
   gl.uniform1f(SunTrackerShader.aspectRatioLoc, gl.canvas.width / gl.canvas.height);
   gl.uniformMatrix4fv(SunTrackerShader.invWorldViewMatLoc, false, inverseWorldView.floatArray()); // transpose = false;
+  gl.uniform1i(SunTrackerShader.usePixelSize, SunTrackerShader.sizeScale === 'screen' ? 1 : 0);
   
   
   // ---- Zenith direction (unit vector in WWT equatorial coords) ----
