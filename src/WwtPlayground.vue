@@ -2,7 +2,6 @@
   <v-app
     id="app"
     :style="cssVars"
-    class="layout-debug"
   >
     <div
       id="main-content"
@@ -64,10 +63,13 @@
 
 <script setup lang="ts">
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ref, reactive, computed, onMounted, nextTick } from "vue";
+import { ref, reactive, computed, onMounted, nextTick, watch, type Ref } from "vue";
 import { GotoRADecZoomParams, engineStore } from "@wwtelescope/engine-pinia";
 import { BackgroundImageset, skyBackgroundImagesets, supportsTouchscreen, blurActiveElement, useWWTKeyboardControls, WWTEngineStore, CreditLogos, IconButton } from "@cosmicds/vue-toolkit";
 import { useDisplay } from "vuetify";
+import { D2R, R2D, H2D, R2H, H2R, D2H  } from "@wwtelescope/astro";
+import { AstroCalc, WWTControl, SpaceTimeController, Settings } from "@wwtelescope/engine";
+import { SolarSystemObjects } from "@wwtelescope/engine-types";
 
 type SheetType = "text" | "video";
 type CameraParams = Omit<GotoRADecZoomParams, "instant">;
@@ -89,7 +91,7 @@ const props = withDefaults(defineProps<WwtPlaygroundProps>(), {
     return {
       raRad: 0,
       decRad: 0,
-      zoomDeg: 60
+      zoomDeg: 360
     };
   }
 });
