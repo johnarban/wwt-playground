@@ -5,6 +5,7 @@
     "src/**/*", 
     "src/**/*.vue",
     "src/**/*.json",
+     "eslint.config.*",
   ],
   "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {
@@ -30,7 +31,6 @@
     "strict": true,
     "jsx": "preserve",
     "importHelpers": true,
-    "downlevelIteration": true,
     "experimentalDecorators": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true, // doesn't work for vue-tsc --build
@@ -38,6 +38,7 @@
     "outDir": "dist",
     "noImplicitAny": false,
     "resolveJsonModule": true,
+    "noUncheckedSideEffectImports": false,
     // lib declaration overrides what is set by vue-tsconfig (es2020)
     "lib": [
       "dom",

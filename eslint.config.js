@@ -64,6 +64,9 @@ export default typescriptEslint.config(
         }
       ],
       "no-unused-vars": "off",
+      "@typescript-eslint/no-non-null-assertion": "off",
+      "@typescript-eslint/no-namespace": "off",
+      "@typescript-eslint/no-inferrable-types": "off",
       "@typescript-eslint/no-unused-vars": [
         "error", {
           "args": "all",
@@ -91,9 +94,7 @@ export default typescriptEslint.config(
     languageOptions: {
       parser: eslintVueParser,
       parserOptions: {
-        parser: {
-          ts: typescriptEslint.parser, 
-        },
+        parser: typescriptEslint.parser,
         extraFileExtensions: ['.vue'],
       },
     },

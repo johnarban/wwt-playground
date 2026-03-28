@@ -200,7 +200,7 @@ body {
 .fade-leave-active {
   transition: opacity 0.3s;
 }
-.fade-enter,
+.fade-enter-from,
 .fade-leave-to {
   opacity: 0;
 }
@@ -289,8 +289,9 @@ body {
 button:focus-visible,
 .focus-visible,
 .v-selection-control--focus-visible .v-selection-control__input {
-  outline: 9px double white !important;
-  box-shadow: 0 0 0 6px black !important;
+  /* Keep this override outside Vuetify's layers so it wins without !important. */
+  outline: 9px double white;
+  box-shadow: 0 0 0 6px black;
   border-radius: .125rem;
 }
 
