@@ -18,6 +18,23 @@ export function renderOneFrame() {
 }
 
 
+/**
+ * Some notes about renderOneFrame
+ * It does things in this order
+ * 1. get imageset
+ * 2. make sure canvas has proper size 
+ * 3. Updates positions and moves
+ * 4. // ignore Solar System mode for now
+ * 5. Draws backgroundImageset
+ * 6. Draws Foreground imageset
+ * 7. renders Hips
+ * 8. Draws planets
+ * 8. Draws Sky Overlays
+ * 9. Draws crosshairs
+ * 10. Draws Annotations
+ * 
+ * 
+ */
 
 const addedToFrame: (()=>void)[] = [];
 let isRenderLoopPatched = false;
@@ -74,4 +91,56 @@ export function removeFromWWTRenderLoop(cb: () => void) {
   if (idx === -1) return;
   // begin removing items at idx, and remove just 1
   addedToFrame.splice(idx, 1);
+}
+
+
+
+// Let's do the same patching for the sky oberlays
+
+
+const addedBeforeSkyOverlays: (()=>void)[] = [];
+let isSkyOverlaysPatched = false;
+function ensureSkyOverlaysPatched() {
+  if (isSkyOverlaysPatched) return;
+
+  
+  
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  const originalDrawSkyOverlays = WWTControl.singleton._drawSkyOverlays;
+  
+  const newDrawSkyOverlays = function() {
+    // call the callbacks first
+    const callbacks = addedBeforeSkyOverlays.slice();
+    for (const cb of callbacks) {
+      try {
+        cb();
+      } catch (e) {
+        console.error('Error from added sky overlay callback', e);
+      }
+    }
+    originalDrawSkyOverlays.call(WWTControl.singleton);
+    // there is an opportuniy here to do something after the sky overlays as well, 
+    // but for now we just want before
+  };
+  
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  WWTControl.singleton._drawSkyOverlays = newDrawSkyOverlays;
+  isSkyOverlaysPatched = true;
+}
+export function addBeforeWWTSkyOverlays(cb: () => void) {
+  if (addedBeforeSkyOverlays.indexOf(cb) !== -1) {
+    console.warn(`Attempted to add ${cb} already before sky overlays. Skipping`);
+    return;
+  }
+
+  ensureSkyOverlaysPatched();
+  addedBeforeSkyOverlays.push(cb);
+}
+
+export function removeBeforeWWTSkyOverlays(cb: () => void) {
+  const idx = addedBeforeSkyOverlays.indexOf(cb);
+  if (idx === -1) return;
+  addedBeforeSkyOverlays.splice(idx, 1);
 }

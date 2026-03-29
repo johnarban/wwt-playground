@@ -36,9 +36,10 @@ declare module "@wwtelescope/engine" {
   }
   
   
-  interface Coordinates {   
-    raDecTo3d(ra: number, dec: number): Vector3d;
-    horizonToEquitorial(altAz: Coordinates, location: Coordinates, utc: Date): Coordinates;
+  namespace Coordinates {   
+    function raDecTo3d(ra: number, dec: number): Vector3d;
+    function mstFromUTC2(utc: Date, lng: number): number
+    function horizonToEquitorial(altAz: Coordinates, location: Coordinates, utc: Date): Coordinates;
   }
   
 
