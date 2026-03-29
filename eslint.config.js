@@ -77,7 +77,7 @@ export default typescriptEslint.config(
       
       
       "@/semi": "error",
-      "vue/multi-word-component-names": "off"
+      "vue/multi-word-component-names": "off",
     },
     
   },
@@ -86,7 +86,6 @@ export default typescriptEslint.config(
   {
     files: ['**/*.vue'],
     
-    // @ts-expect-error Vuetify ESLint config is not typed
     extends: [
       ...eslintPluginVue.configs['flat/recommended'],
       ...eslintPluginVuetify.configs['flat/recommended'],
@@ -104,6 +103,7 @@ export default typescriptEslint.config(
       'vue/html-self-closing': 'off',
       'vue/require-default-prop': 'warn',
       'vue/no-v-html': 'off',
+      'vue/block-order': 'off',
     },
   }
 
