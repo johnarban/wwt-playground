@@ -5,7 +5,7 @@
 
 @font-face {
   font-family: "Highway Gothic Narrow";
-  src: url("./assets/HighwayGothicNarrow.ttf");
+  src: url("../assets/HighwayGothicNarrow.ttf");
 }
 
 :root {
@@ -50,6 +50,5 @@ fieldset > legend,
 fieldset label {
   user-select: none;
 }
-
 
 
