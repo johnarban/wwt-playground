@@ -2,6 +2,7 @@
   <v-app
     id="app"
     :style="cssVars"
+    class="layout-debug"
   >
     <div
       id="main-content"
@@ -9,6 +10,7 @@
       <WorldWideTelescope
         :wwt-namespace="wwtNamespace"
       ></WorldWideTelescope>
+      <Loader v-model="isLoading" />
 
 
       <!-- This contains the splash screen content -->
@@ -54,6 +56,12 @@
         >
           <CreditLogos
             :default-logos="['cosmicds', 'wwt']"
+            :extra-logos="[{
+              alt: 'Windowpane Production.',
+              href: 'https://johnarban.github.io',
+              src:'windowpane.png'
+            }
+            ] as never[]"
           />
         </div>
       </div>
@@ -70,6 +78,7 @@ import { useDisplay } from "vuetify";
 import { D2R, R2D, H2D, R2H, H2R, D2H  } from "@wwtelescope/astro";
 import { AstroCalc, WWTControl, SpaceTimeController, Settings } from "@wwtelescope/engine";
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
+import Loader from "./components/Loader.vue";
 
 type SheetType = "text" | "video";
 type CameraParams = Omit<GotoRADecZoomParams, "instant">;
@@ -137,38 +146,6 @@ const cssVars = computed(() => {
 </script>
 
 <style lang="less">
-@font-face {
-  font-family: "Highway Gothic Narrow";
-  src: url("./assets/HighwayGothicNarrow.ttf");
-}
-
-:root {
-  font-size: 11pt;
-  line-height: 1.2;
-}
-
-html {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  background-color: #000;
-  overflow: hidden;
-
-  
-  -ms-overflow-style: none;
-  // scrollbar-width: none;
-}
-
-body {
-  position: fixed;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-
-  font-family: Verdana, Arial, Helvetica, sans-serif;
-}
 
 #main-content {
   position: fixed;
@@ -207,41 +184,7 @@ body {
   opacity: 0;
 }
 
-.modal {
-  position: absolute;
-  top: 0px;
-  left: 0px;
-  width: 100%;
-  height: 100%;
-  z-index: 100;
-  color: #fff;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-#modal-loading {
-  background-color: #000;
-  .container {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    .spinner {
-      background-image: url("https://projects.cosmicds.cfa.harvard.edu/cds-website/misc/lunar_loader.gif");
-      background-repeat: no-repeat;
-      background-size: contain;
-      width: 3rem;
-      height: 3rem;
-    }
-    p {
-      margin: 0 0 0 1rem;
-      padding: 0;
-      font-size: 2rem;
-    }
-  }
-}
+// moved modal content to Loader.vue
 
 #top-content {
   position: absolute;
@@ -283,6 +226,9 @@ body {
 #bottom-content {
   #body-logos {
     align-self: flex-end;
+  }
+  img[alt="Windowpane Production."] {
+    background-color: rgba(255, 255, 255, 0.3);
   }
 }
 
