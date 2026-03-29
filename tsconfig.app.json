@@ -25,7 +25,7 @@
     },
     
     // keep tsconfig from vue-ds-template
-    "target": "es6",
+    "target": "es6", // ES2015
     "module": "esnext",
     "moduleResolution": "bundler",
     "strict": true,
@@ -44,6 +44,7 @@
       "dom",
       "dom.iterable",
       "es6",
+      "ES2015",
       "ES2017",
     ],
     
