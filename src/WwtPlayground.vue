@@ -43,7 +43,7 @@
               type="range"
               min="0"
               max="86399"
-              step="60"
+              step="10"
               @input="onTimeChange"
             />
             <span id="time-label">{{ timeLabel }}</span>
@@ -90,7 +90,7 @@ import { GotoRADecZoomParams, engineStore } from "@wwtelescope/engine-pinia";
 import { BackgroundImageset, skyBackgroundImagesets, supportsTouchscreen, blurActiveElement, useWWTKeyboardControls, WWTEngineStore, CreditLogos, IconButton } from "@cosmicds/vue-toolkit";
 import { useDisplay } from "vuetify";
 import { D2R, R2D, H2D, R2H, H2R, D2H  } from "@wwtelescope/astro";
-import { AstroCalc, WWTControl, SpaceTimeController, Settings } from "@wwtelescope/engine";
+import { AstroCalc, WWTControl, SpaceTimeController, Settings, Coordinates } from "@wwtelescope/engine";
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
 
 import { watchWwtContainerSize } from "./composables/wwtContainerSize";
@@ -100,7 +100,6 @@ type SheetType = "text" | "video";
 type CameraParams = Omit<GotoRADecZoomParams, "instant">;
 export interface WwtPlaygroundProps {
   wwtNamespace?: string;
-  initialCameraParams?: CameraParams;
 }
 
 const store = engineStore();
@@ -112,14 +111,6 @@ const { smAndDown } = useDisplay();
 
 const props = withDefaults(defineProps<WwtPlaygroundProps>(), {
   wwtNamespace: "wwt-playground",
-  initialCameraParams: () => {
-    const galacticCenter = AstroCalc.galacticToJ2000(0, 0);
-    return {
-      raRad: 0,
-      decRad: 0,
-      zoomDeg: 360
-    };
-  }
 });
 
 const splash = new URLSearchParams(window.location.search).get("splash")?.toLowerCase() !== "false";
@@ -153,8 +144,9 @@ interface LocationDeg {
   lat: number,
   lon: number
 }
-const defaultLocation: LocationDeg = { lat: 42.3736,lon: -71.1097};
+const defaultLocation: LocationDeg = { lat: 50,lon: -70};
 const location = ref(defaultLocation);
+const initialTime = new Date(Date.UTC(2026, 2, 20, 10, 46, 0)); // year is 0-indexed in JS Date, so this is March 20, 2026 at 6:52:00
 
 const timeOfDay = ref(18 * 3600); // seconds from midnight, default 18:00
 const timeLabel = computed(() => {
@@ -162,6 +154,19 @@ const timeLabel = computed(() => {
   const m = Math.floor((timeOfDay.value % 3600) / 60);
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 });
+
+// const galacticCenter = AstroCalc.galacticToJ2000(0, 0);
+const center = Coordinates.horizonToEquitorial(
+  Coordinates.fromLatLng(0,90), 
+  Coordinates.fromLatLng(location.value.lat,location.value.lon), 
+  initialTime
+);
+const initialCameraParams = {
+  raRad: center.get_RA() * H2R, // convert hours to radian
+  decRad: center.get_dec() * D2R, // convert degrees to radians
+  rollRad: 0,
+  zoomDeg: 360
+};
 
 function onTimeChange() {
   const h = Math.floor(timeOfDay.value / 3600);
@@ -200,18 +205,21 @@ onMounted(() => {
     store.applySetting(['localHorizonMode', true]);
     setWWTLocation(location.value);
     store.applySetting(['showAltAzGrid', true]);
+    store.applySetting(['showAltAzGridText', true]);
     store.setClockRate(1000);
     store.setClockSync(false);  // need this to prevent store.currentTime from being constantly set
-    store.setTime(new Date(2026, 2, 20, 18, 0, 0));
+    store.setTime(initialTime);
     skyBackgroundImagesets.forEach(iset => backgroundImagesets.push(iset));
     // store.applySetting(['showGrid', true]);
+    // store.applySetting(['showEquatorialGridText', true]);
     renderOneFrame();
     const sunPos = AstroCalc.getPlanet(SpaceTimeController.utcToJulian(store.currentTime), SolarSystemObjects.sun, 0,0,0);
     store.gotoRADecZoom({
-      raRad: sunPos.RA * D2R,
-      decRad: sunPos.dec * D2R,
-      zoomDeg: props.initialCameraParams.zoomDeg,
-      rollRad: props.initialCameraParams.rollRad,
+      ...initialCameraParams,
+      // raRad: sunPos.RA * D2R,
+      // decRad: sunPos.dec * D2R,
+      // zoomDeg: props.initialCameraParams.zoomDeg,
+      // rollRad: props.initialCameraParams.rollRad,
       instant: true
     }).then(() => positionSet.value = true);
     positionSet.value = true;
