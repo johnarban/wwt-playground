@@ -1,4 +1,3 @@
-<!--  -->
 <template>
   <div>
     <fieldset>
@@ -58,11 +57,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { ref, computed ,onMounted, Ref} from 'vue';
 
-import { addToWWTRenderLoop , renderOneFrame} from "@/wwt-hacks";
+import { addBeforeWWTSkyOverlays, addToWWTRenderLoop , renderOneFrame} from "@/wwt-hacks";
 import {SimpleLineList, Vector3d, Color } from "@wwtelescope/engine";
 import { DeadSimpleShader } from "@/shaders/DeadSimpleShader/DeadSimpleShaders";
 import { FullScreenQuad } from "@/shaders/FullScreenQuad/FullScreenQuad";
 import { SunTrackerShader } from "@/shaders/SunTracker/SunTrackerShader";
+import { HorizonShader } from "@/shaders/HorizonShader/horizonShader";
 import { AstroCalc, SpaceTimeController, Settings, WWTControl } from "@wwtelescope/engine";
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
 import { engineStore } from '@wwtelescope/engine-pinia';
@@ -135,12 +135,22 @@ const suntrackershader = {
     }
   }
 };
+const horizonshader = {
+  name: "Horizon",
+  code: () => {
+    if (!in3d) {
+      HorizonShader.setScale(usePixelScale.value ? 'screen' : 'world');
+      HorizonShader.use(WWTControl.singleton.renderContext, location.lat, location.lon);
+    }
+  }
+};
 
 const allShaders = [
   linesShader,
   deadSimpleShader,
   fullscreenshader,
   suntrackershader,
+  horizonshader,
   {name: 'None', code: () => {return;}}
 ] as const;
 const shaders = new Map<typeof allShaders[0]['name'], () => void>();
@@ -152,7 +162,7 @@ allShaders.map(v => {
 
 
 
-const selectedShader = ref<typeof allShaders[0]['name']>('Sun Tracker');
+const selectedShader = ref<typeof allShaders[0]['name']>('Horizon');
 
 const selectedShaderFunction = computed(() => {
   if (shaders.has(selectedShader.value)) {
@@ -164,8 +174,13 @@ const selectedShaderFunction = computed(() => {
 onMounted(() => {
   store.waitForReady().then(async () => {
     renderOneFrame();
+    addBeforeWWTSkyOverlays(() => {
+      if (selectedShader.value === 'Horizon' && selectedShaderFunction.value) {
+        selectedShaderFunction.value();
+      }
+    });
     addToWWTRenderLoop(() => {
-      if (selectedShaderFunction.value) {
+      if (selectedShader.value !== 'Horizon' && selectedShaderFunction.value) {
         selectedShaderFunction.value();
       }
     });
@@ -173,4 +188,3 @@ onMounted(() => {
 });
 
 </script>
-
