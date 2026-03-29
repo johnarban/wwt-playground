@@ -5,7 +5,6 @@
     "src/**/*", 
     "src/**/*.vue",
     "src/**/*.json",
-     "eslint.config.*",
   ],
   "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {
@@ -25,7 +24,7 @@
     },
     
     // keep tsconfig from vue-ds-template
-    "target": "es6", // ES2015
+    "target": "es6",
     "module": "esnext",
     "moduleResolution": "bundler",
     "strict": true,
