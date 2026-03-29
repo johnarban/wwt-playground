@@ -43,6 +43,11 @@
         <div id="center-buttons">
         </div>
         <div id="right-buttons">
+          <BrightnessContrast
+            element=".wwtelescope-component > canvas"
+            :initial-brightness="2.5"
+            :initial-contrast="1"
+          />
         </div>
       </div>
 
@@ -79,6 +84,7 @@ import { D2R, R2D, H2D, R2H, H2R, D2H  } from "@wwtelescope/astro";
 import { AstroCalc, WWTControl, SpaceTimeController, Settings } from "@wwtelescope/engine";
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
 import Loader from "./components/Loader.vue";
+import BrightnessContrast from "./components/BrightnessContrast.vue";
 
 type SheetType = "text" | "video";
 type CameraParams = Omit<GotoRADecZoomParams, "instant">;
@@ -97,9 +103,10 @@ const { smAndDown } = useDisplay();
 const props = withDefaults(defineProps<WwtPlaygroundProps>(), {
   wwtNamespace: "wwt-playground",
   initialCameraParams: () => {
+    const galacticCenter = AstroCalc.galacticToJ2000(0, 0);
     return {
-      raRad: 0,
-      decRad: 0,
+      raRad: galacticCenter.RA * H2R ,
+      decRad: galacticCenter.dec * D2R,
       zoomDeg: 360
     };
   }
