@@ -86,6 +86,9 @@ import { SolarSystemObjects } from "@wwtelescope/engine-types";
 import Loader from "./components/Loader.vue";
 import BrightnessContrast from "./components/BrightnessContrast.vue";
 
+import { watchWwtContainerSize } from "./composables/wwtContainerSize";
+watchWwtContainerSize('.wwtelescope-component', '#main-content');
+
 type SheetType = "text" | "video";
 type CameraParams = Omit<GotoRADecZoomParams, "instant">;
 export interface WwtPlaygroundProps {
