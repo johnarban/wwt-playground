@@ -20,14 +20,17 @@
           >
             <div class="shader-label">
               <div>{{ shaderName }}</div>
-              <v-checkbox
-                v-if="shaderName === 'Sun Tracker' && selectedShader === shaderName"
-                v-model="usePixelScale"
-                class="pointer-events-auto ml-2" 
-                label="Use Screen Scale"
-                density="compact"
-                hide-details
-              />
+              <label
+                v-if="['Sun Tracker', 'Horizon'].includes(shaderName) && selectedShader === shaderName"
+                class="shader-toggle pointer-events-auto ml-2"
+                @click.stop
+              >
+                <input
+                  v-model="usePixelScale"
+                  type="checkbox"
+                >
+                <span>Use Screen Scale</span>
+              </label>
             </div>
           </template>
         </v-radio>
@@ -42,6 +45,12 @@
   flex-direction: row;
   align-items: center;
   justify-content: center;
+}
+
+.shader-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 </style>
 
