@@ -9,87 +9,92 @@
       <WorldWideTelescope
         :wwt-namespace="wwtNamespace"
       ></WorldWideTelescope>
+      <wwt-loader v-model="isLoading" />
 
 
       <!-- This contains the splash screen content -->
-
-      <transition name="fade">
-        <div
-          v-show="isLoading"
-          id="modal-loading"
-          class="modal"
-        >
-          <div class="container">
-            <div class="spinner"></div>
-            <p>Loading …</p>
-          </div>
-        </div>
-      </transition>
     
 
       <!-- This block contains the elements (e.g. icon buttons displayed at/near the top of the screen -->
-
-      <div id="top-content">
-        <div id="left-buttons">
-          <icon-button
-            icon="book-open"
-            :color="buttonColor"
-            tooltip-location="start"
-          >
-          </icon-button>
+      <div id="wwt-overlay">
+        <div id="top-content">
           <WWTTimeControl />
-          <button 
-            @click="toggle3D" 
+          <v-btn
+            density="compact"
+            rounded="lg"
+            @click="toggle3D"
             @keyup.enter="toggle3D"
           >
             Switch to {{ in3d ? '2D' : '3D' }}
-          </button>
+          </v-btn>
           <AddShader
             :in3d="in3d"
             :location="location"
           />
         </div>
-        <div id="center-buttons">
-        </div>
-        <div id="right-buttons">
+
+        <!-- This block contains the elements (e.g. the project icons) displayed along the bottom of the screen -->
+
+        <div id="bottom-content">
+          <div id="time-slider-container">
+            <input
+              id="time-slider"
+              v-model.number="timeOfDay"
+              type="range"
+              min="0"
+              max="86399"
+              step="60"
+              @input="onTimeChange"
+            />
+            <span id="time-label">{{ timeLabel }}</span>
+          </div>
+          <div
+            v-if="!smallSize"
+            id="body-logos"
+          >
+            <CreditLogos
+              logo-size="20px"
+              :default-logos="['cosmicds', 'wwt']"
+              :extra-logos="[{
+                alt: 'Windowpane Production.',
+                href: 'https://johnarban.github.io',
+                src:'windowpane.png'
+              }
+              ] as never[]"
+            />
+          </div>
         </div>
       </div>
-
-
-      <!-- This block contains the elements (e.g. the project icons) displayed along the bottom of the screen -->
-
-      <div id="bottom-content">
-        <div id="time-slider-container">
-          <input
-            id="time-slider"
-            v-model.number="timeOfDay"
-            type="range"
-            min="0"
-            max="86399"
-            step="60"
-            @input="onTimeChange"
-          />
-          <span id="time-label">{{ timeLabel }}</span>
-        </div>
-        <div
-          v-if="!smallSize"
-          id="body-logos"
-        >
-          <CreditLogos
-            :default-logos="['cosmicds', 'wwt']"
-          />
-        </div>
-      </div>
+    </div>
+    <div
+      v-show="sheet === 'text'"
+      id="bottom-drawer"
+    >
+      <article class="pa-5">
+        <h1>Bottom Drawer</h1>
+        <p>
+          Never gonna give you up.
+        </p>
+        <p>
+          Never gonnna let you down.
+        </p>
+      </article>
     </div>
   </v-app>
 </template>
 
 <script setup lang="ts">
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ref, reactive, computed, onMounted, nextTick, watch } from "vue";
+import { ref, reactive, computed, onMounted, nextTick, watch, type Ref } from "vue";
 import { GotoRADecZoomParams, engineStore } from "@wwtelescope/engine-pinia";
 import { BackgroundImageset, skyBackgroundImagesets, supportsTouchscreen, blurActiveElement, useWWTKeyboardControls, WWTEngineStore, CreditLogos, IconButton } from "@cosmicds/vue-toolkit";
 import { useDisplay } from "vuetify";
+import { D2R, R2D, H2D, R2H, H2R, D2H  } from "@wwtelescope/astro";
+import { AstroCalc, WWTControl, SpaceTimeController, Settings } from "@wwtelescope/engine";
+import { SolarSystemObjects } from "@wwtelescope/engine-types";
+
+import { watchWwtContainerSize } from "./composables/wwtContainerSize";
+// watchWwtContainerSize('.wwtelescope-component', '#main-content');
 
 type SheetType = "text" | "video";
 type CameraParams = Omit<GotoRADecZoomParams, "instant">;
@@ -108,6 +113,7 @@ const { smAndDown } = useDisplay();
 const props = withDefaults(defineProps<WwtPlaygroundProps>(), {
   wwtNamespace: "wwt-playground",
   initialCameraParams: () => {
+    const galacticCenter = AstroCalc.galacticToJ2000(0, 0);
     return {
       raRad: 0,
       decRad: 0,
@@ -140,9 +146,6 @@ function toggle3D() {
 };
 
 import { addToWWTRenderLoop , renderOneFrame} from "./wwt-hacks";
-import { D2R } from "@wwtelescope/astro";
-import { AstroCalc, SpaceTimeController, Settings } from "@wwtelescope/engine";
-import { SolarSystemObjects } from "@wwtelescope/engine-types";
 import AddShader from "./components/AddShader.vue";
 import WWTTimeControl from "./components/WWTTimeControl.vue";
 
@@ -179,6 +182,15 @@ watch(() => store.currentTime, (date) => {
 function setWWTLocation(location: LocationDeg) {
   store.applySetting(['locationLat', location.lat]);
   store.applySetting(['locationLng', location.lon]);
+}
+
+function toggleSheet() {
+  console.log("toggling sheet");
+  if (sheet.value) {
+    sheet.value = null;
+  } else {
+    sheet.value = "text";
+  }
 }
 
 onMounted(() => {
@@ -231,120 +243,97 @@ const cssVars = computed(() => {
 </script>
 
 <style lang="less">
-@font-face {
-  font-family: "Highway Gothic Narrow";
-  src: url("./assets/HighwayGothicNarrow.ttf");
-}
 
-:root {
-  font-size: 11pt;
-  line-height: 1.2;
-}
+// #app is a column flex container with two children:
+// #main-content and #bottom-drawer.
+// #main-content contains the WWT display and the overlay content.
 
-html {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  background-color: #000;
+#app {
+  // Vuetify's root app element fills the viewport.
   overflow: hidden;
-
-  
-  -ms-overflow-style: none;
-  // scrollbar-width: none;
+  // Vuetify's root app element is a column flex layout 
+  // lets #main-content take the remaining height
+  // after `#bottom-drawer` takes its own height.
 }
 
-body {
-  position: fixed;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-
-  font-family: Verdana, Arial, Helvetica, sans-serif;
-}
 
 #main-content {
-  position: fixed;
-  width: 100vw;
-  height: 100vh;
+  // This is the containing block for the absolutely positioned WWT host and overlay.
+  position: relative;
+  display: block; // don't need to set width. block elements stretch to fill their container by default.
+  
+  // Its height is determined by the flex layout in `#app`.
+  flex: 1 0 auto;
   overflow: hidden;
 
   transition: height 0.1s ease-in-out;
 }
 
-#app {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  overflow: hidden;
+/* The WWT host is out of flow so its measured size does not affect #main-content. */
+// by using inset: 0, .wwttelescope-component fills #main-content and automatically resizes with it,
+// without needing a height width set. this allows main-content to be more freely sizes.
+/*
+WWT can size itself from CSS alone here because #main-content has a real layout size (from the flex layout in #app)
+and `.wwtelescope-component` is absolutely positioned to fill it.
 
-  .wwtelescope-component {
-    position: absolute;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    border-style: none;
-    border-width: 0;
-    margin: 0;
-    padding: 0;
-  }
+This breaks if #main-content stops having a definite size from layout. Common failure modes:
+  - `#main-content` loses `flex-grow`/flex sizing, so in a column layout it can collapse to zero height.
+  - An ancestor no longer has a definite height, so percentage or flex-based heights stop resolving.
+  - `#main-content` is changed to content-sized sizing (`auto`, `fit-content`, certain grid/flex min-content cases),
+    so its size starts depending on descendants instead of the outer layout.
+  - `.wwtelescope-component` is put back in normal flow, letting WWT's continuously resized canvas feed back into layout
+    and recreate the growth loop.
+  - Padding or other box-model changes are applied to the measured WWT host instead of an outer wrapper, which can
+    reintroduce resize feedback.
+
+If any of those happen, the ResizeObserver composable may be needed again to push the resolved size from
+`#main-content` onto the WWT host explicitly.
+*/
+.wwtelescope-component {
+  position: absolute; // putting this to relative will cause the growth loop, and will require the composable to prevent that
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  // The composable sets the host element's inline width/height from #main-content.
+  transition: height 0.2s ease-in-out;
+  opacity: 0.5;
 }
 
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s;
-}
-.fade-enter,
-.fade-leave-to {
-  opacity: 0;
-}
-
-.modal {
+/*
+#wwt-overlay is positioned against #main-content, not the viewport.
+`position: absolute` makes it fill #main-content.
+`position: fixed` would anchor it to the viewport instead.
+The overlay itself is out of flow, but its children can use normal flex layout inside it.
+you can also do position: relative, height: 100%. (and remove the inset: 0)
+- absolute + inset: 0 says “this is a layer pinned to the container”
+- relative + height: 100% says “this is a normal child trying to be as tall as its parent”
+we use the absolute variant to stay more independent of the which can interact weirdly with WWT's resizing. 
+and the relative still requires the parent to have a definite size.
+and remember, position:absolute is still a positioned parent, so children can be absolute against it
+*/
+#wwt-overlay {
   position: absolute;
-  top: 0px;
-  left: 0px;
-  width: 100%;
-  height: 100%;
-  z-index: 100;
-  color: #fff;
-  background-color: rgba(0, 0, 0, 0.7);
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  padding-inline: 1em;
+  padding-block: 1em;
+  pointer-events: none;
+  
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  justify-content: space-between; // pushes top and bottom content apart
 }
 
-#modal-loading {
-  background-color: #000;
-  .container {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    .spinner {
-      background-image: url("https://projects.cosmicds.cfa.harvard.edu/cds-website/misc/lunar_loader.gif");
-      background-repeat: no-repeat;
-      background-size: contain;
-      width: 3rem;
-      height: 3rem;
-    }
-    p {
-      margin: 0 0 0 1rem;
-      padding: 0;
-      font-size: 2rem;
-    }
-  }
-}
+// moved modal content to Loader.vue
 
 #top-content {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  width: calc(100% - 2rem);
+  width: 100%; // 100% of the overlay less the padding
   pointer-events: none;
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between; // keeps left, center, and right buttons spread
   align-items: flex-start;
 }
 
@@ -352,9 +341,15 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 10px;
+  gap: 1rem;
 }
 
+#center-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
 #right-buttons {
   display: flex;
   flex-direction: column;
@@ -366,10 +361,6 @@ body {
 #bottom-content {
   display: flex;
   flex-direction: column;
-  position: absolute;
-  bottom: 1rem;
-  right: 1rem;
-  width: calc(100% - 2rem);
   pointer-events: none;
   align-items: center;
   gap: 5px;
@@ -405,6 +396,9 @@ body {
   #body-logos {
     align-self: flex-end;
   }
+  img[alt="Windowpane Production."] {
+    background-color: rgba(255, 255, 255, 0.3);
+  }
 }
 
 // From Sara Soueidan (https://www.sarasoueidan.com/blog/focus-indicators/) & Erik Kroes (https://www.erikkroes.nl/blog/the-universal-focus-state/)
@@ -431,6 +425,9 @@ body {
     min-width: 1px;
     min-height: 1px;
   }
+  #wwt-overlay {
+    border: 3px solid aqua;
+  }
   
 }
 
@@ -444,6 +441,12 @@ body {
 #app button:hover {
   background-color: rgb(255, 255, 255, 0.1);
   color: black;
+}
+#bottom-drawer {
+  position: relative;
+  // height: 200px;
+  // flex: 0 0 200px;
+  overflow: auto;
 }
 
 </style>

@@ -30,7 +30,6 @@
     "strict": true,
     "jsx": "preserve",
     "importHelpers": true,
-    "downlevelIteration": true,
     "experimentalDecorators": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true, // doesn't work for vue-tsc --build
@@ -38,11 +37,13 @@
     "outDir": "dist",
     "noImplicitAny": false,
     "resolveJsonModule": true,
+    "noUncheckedSideEffectImports": false,
     // lib declaration overrides what is set by vue-tsconfig (es2020)
     "lib": [
       "dom",
       "dom.iterable",
       "es6",
+      "ES2015",
       "ES2017",
     ],
     

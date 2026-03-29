@@ -1,30 +1,49 @@
 <!--  -->
 <template>
   <div>
-    <v-radio-group
-      v-model="selectedShader"
-      class="pointer-events-auto"
-      label="Shader"
-    >
-      <v-radio 
-        v-for="shaderName in shaders.keys()"
-        :key="shaderName"
-        :label="shaderName"
-        :value="shaderName"
+    <fieldset>
+      <legend>Select shader</legend>
+      <v-radio-group
+        v-model="selectedShader"
+        class="pointer-events-auto"
+        density="compact"
+        hide-details
       >
-      </v-radio>
-    </v-radio-group>
-    <div 
-      v-if="selectedShader === 'Sun Tracker'"
-      class="pointer-events-auto" 
-    >
-      <v-checkbox
-        v-model="usePixelScale"
-        label="Use Screen Scale"
-      />
-    </div>
+        <v-radio 
+          v-for="shaderName in shaders.keys()"
+          :key="shaderName"
+          :label="shaderName"
+          :value="shaderName"
+        >
+          <template 
+            #label
+          >
+            <div class="shader-label">
+              <div>{{ shaderName }}</div>
+              <v-checkbox
+                v-if="shaderName === 'Sun Tracker' && selectedShader === shaderName"
+                v-model="usePixelScale"
+                class="pointer-events-auto ml-2" 
+                label="Use Screen Scale"
+                density="compact"
+                hide-details
+              />
+            </div>
+          </template>
+        </v-radio>
+      </v-radio-group>
+    </fieldset>
   </div>
 </template>
+
+<style>
+.shader-label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+</style>
 
 <script setup lang="ts">
 /* eslint-disable @typescript-eslint/no-unused-vars */

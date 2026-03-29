@@ -1,61 +1,53 @@
 <template>
-  <div id="wwt-time-control">
-    <!-- <button 
-      class="wwt-time-control-collapsor"
-      @click="show=!show"
-    >
-      WWT Time Controls
-    </button> -->
-    <div 
-      v-if="show" 
-      class="wwt-control-container"
-    >
-      <div class="wwt-time-set">
-        <label>
-          UTC Time: 
-          <input 
-            v-model="selectedDateTime"
-            class="wwt-time-control-input"
-            type="datetime-local"
-            @focus="inputFocused = true"
-            @blur="inputFocused = false"
-          >
-        </label>
-        <v-btn 
-          style="text-transform:none;"
-          rounded="lg"
-          density="compact"
-          @click="setTime"
-          @keyup.enter="setTime"
+  <fieldset id="wwt-time-control">
+    <legend>WWT Time Control</legend>
+
+    <div class="wwt-time-set">
+      <label>
+        UTC Time: 
+        <input 
+          v-model="selectedDateTime"
+          class="wwt-time-control-input"
+          type="datetime-local"
+          @focus="inputFocused = true"
+          @blur="inputFocused = false"
         >
-          Set time
-        </v-btn>
-      </div>
-      <div class="wwt-clock-controls">
-        <label>
-          Rate:
-          <input 
-            v-model="clockRate" 
-            type="number"
-          />
-        </label>
-        <v-checkbox 
-          v-model="clockSync" 
-          label="Clock Sync" 
-          density="compact"
-          hide-details
-        />
-        <v-btn 
-          rounded="lg"
-          density="compact"
-          @click="() => store.setTime(new Date())"
-          @keyup.enter="() => store.setTime(new Date())"
-        >
-          Now
-        </v-btn>
-      </div>
+      </label>
+      <v-btn 
+        style="text-transform:none;"
+        rounded="lg"
+        density="compact"
+        @click="setTime"
+        @keyup.enter="setTime"
+      >
+        Set time
+      </v-btn>
     </div>
-  </div>
+    
+    <div class="wwt-clock-controls">
+      <label>
+        Rate:
+        <input 
+          v-model="clockRate" 
+          type="number"
+        />
+      </label>
+      <v-checkbox 
+        v-model="clockSync" 
+        label="Clock Sync" 
+        density="compact"
+        hide-details
+      />
+      <v-btn 
+        rounded="lg"
+        density="compact"
+        @click="() => store.setTime(new Date())"
+        @keyup.enter="() => store.setTime(new Date())"
+      >
+        Now
+      </v-btn>
+    </div>
+  </fieldset>
 </template>
 
 <script setup lang="ts">
@@ -117,64 +109,12 @@ function formatTime(date: Date) {
 </script>
 
 <style>
-#wwt-time-control {
-  --color: rgb(186, 186, 186);
-  --radius: 4px;
-  --spacing: 8px;
-  --label-space: 1em;
-  --bg: black;
 
-  pointer-events: auto;
-  border: 1px solid var(--color);
-  border-radius: var(--radius);
-  padding: calc(2 * var(--spacing)) var(--spacing);
-  position: relative;
-  margin-top: var(--label-space);
-  background-color: rgba(255, 255,255, 0.15);
-}
 
-#wwt-time-control > .wwt-control-container {
+fieldset#wwt-time-control {
   display: flex;
   flex-direction: column;
   gap: var(--spacing);
-}
-
-#wwt-time-control::before {
-  content: 'WWT Time Controls';
-  position: absolute;
-  top: calc(-0.8 * var(--label-space));
-  left: 0.5em;
-  padding-inline: var(--spacing);
-  padding-block: 1px;
-  border: 1px solid var(--color);
-  border-radius: var(--radius);
-  background-color: var(--bg);
-  white-space: nowrap;
-}
-
-#wwt-time-control > button.wwt-time-control-collapsor {
-  display: none;
-  position: absolute;
-  top: calc(-0.8 * var(--label-space) - var(--spacing));
-  left: 0.5em;
-  border-inline: 1px solid var(--color);
-  border-radius: var(--radius);
-  padding-inline: var(--spacing);
-  padding-block: calc(var(--spacing) / 2);
-  color: white;
-  background-color: var(--bg);
-  white-space: nowrap;
-}
-
-#wwt-time-control label {
-  user-select: none;
-}
-
-#wwt-time-control input {
-  border: 1px solid var(--color);
-  border-radius: var(--radius);
-  padding: var(--spacing);
-  background-color: var(--bg);
 }
 
 #wwt-time-control .wwt-time-set {

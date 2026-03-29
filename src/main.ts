@@ -1,6 +1,9 @@
 import { createApp, type DirectiveBinding, type Plugin } from "vue";
 import { FundingAcknowledgement, IconButton, CreditLogos } from "@cosmicds/vue-toolkit";
 import WwtPlayground from "./WwtPlayground.vue";
+import Loader from "./components/Loader.vue";
+import BrightnessContrast from "./components/BrightnessContrast.vue";
+
 
 import vuetify from "@/plugins/vuetify";
 
@@ -19,7 +22,9 @@ library.add(faBookOpen);
 library.add(faTimes);
 library.add(faVideo);
 
-/** v-hide directive taken from https://www.ryansouthgate.com/2020/01/30/vue-js-v-hide-element-whilst-keeping-occupied-space/ */
+import "./styles/main.css";
+
+/** @Carifio24 v-hide directive taken from https://www.ryansouthgate.com/2020/01/30/vue-js-v-hide-element-whilst-keeping-occupied-space/ */
 // Extract the function out, up here, so I'm not writing it twice
 const update = (el: HTMLElement, binding: DirectiveBinding) => el.style.visibility = (binding.value) ? "hidden" : "";
 
@@ -53,6 +58,8 @@ createApp(WwtPlayground, {
   .component('icon-button', IconButton)
   .component('funding-acknowledgement', FundingAcknowledgement)
   .component('credit-logos', CreditLogos)
+  .component('wwt-loader', Loader)
+  .component('brightness-contrast', BrightnessContrast)
 
   // Mount
-  .mount("#app");
+  .mount("#app-mount");
