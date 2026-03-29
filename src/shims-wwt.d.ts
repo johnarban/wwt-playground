@@ -60,6 +60,10 @@ declare module "@wwtelescope/engine" {
    */
   namespace AstroCalc {
     function getPlanet(jDate: number, planetName: SolarSystemObjects, lat: number, lng: number, height: number): AstroRaDec;
+    function galacticToJ2000(l: number, b: number): AstroRaDec;
+    function eclipticToJ2000(l: number, b: number): AstroRaDec;
+    function j2000ToGalactic(ra: number, dec: number): AstroRaDec; // l is on RA, and b is on dec
+    function j2000ToEcliptic(ra: number, dec: number): AstroRaDec; // l is on RA, and b is on dec
   }
   
   namespace SpaceTimeController {
