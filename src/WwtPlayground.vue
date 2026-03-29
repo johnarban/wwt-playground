@@ -2,7 +2,6 @@
   <v-app
     id="app"
     :style="cssVars"
-    class="layout-debug"
   >
     <div
       id="main-content"
@@ -10,7 +9,7 @@
       <WorldWideTelescope
         :wwt-namespace="wwtNamespace"
       ></WorldWideTelescope>
-      <Loader v-model="isLoading" />
+      <wwt-loader v-model="isLoading" />
 
 
       <!-- This contains the splash screen content -->
@@ -31,7 +30,7 @@
           <div id="center-buttons">
           </div>
           <div id="right-buttons">
-            <BrightnessContrast
+            <brightness-contrast
               element=".wwtelescope-component > canvas"
               :initial-brightness="2.5"
               :initial-contrast="1"
@@ -86,8 +85,6 @@ import { useDisplay } from "vuetify";
 import { D2R, R2D, H2D, R2H, H2R, D2H  } from "@wwtelescope/astro";
 import { AstroCalc, WWTControl, SpaceTimeController, Settings } from "@wwtelescope/engine";
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
-import Loader from "./components/Loader.vue";
-import BrightnessContrast from "./components/BrightnessContrast.vue";
 
 import { watchWwtContainerSize } from "./composables/wwtContainerSize";
 // watchWwtContainerSize('.wwtelescope-component', '#main-content');
@@ -299,10 +296,7 @@ and remember, position:absolute is still a positioned parent, so children can be
 }
 
 // From Sara Soueidan (https://www.sarasoueidan.com/blog/focus-indicators/) & Erik Kroes (https://www.erikkroes.nl/blog/the-universal-focus-state/)
-:focus-visible,
-button:focus-visible,
-.focus-visible,
-.v-selection-control--focus-visible .v-selection-control__input {
+:focus-visible, .focus-visible, .v-selection-control--focus-visible .v-selection-control__input {
   /* Keep this override outside Vuetify's layers so it wins without !important. */
   outline: 6px double white;
   box-shadow: 0 0 0 3px black;
