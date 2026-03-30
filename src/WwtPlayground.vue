@@ -305,7 +305,6 @@ If any of those happen, the ResizeObserver composable may be needed again to pus
   right: 0;
   // The composable sets the host element's inline width/height from #main-content.
   transition: height 0.2s ease-in-out;
-  opacity: 0.5;
 }
 
 /*

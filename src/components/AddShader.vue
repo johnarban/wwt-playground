@@ -63,6 +63,7 @@ import { DeadSimpleShader } from "@/shaders/DeadSimpleShader/DeadSimpleShaders";
 import { FullScreenQuad } from "@/shaders/FullScreenQuad/FullScreenQuad";
 import { SunTrackerShader } from "@/shaders/SunTracker/SunTrackerShader";
 import { HorizonShader } from "@/shaders/HorizonShader/horizonShader";
+import { HorizonTextureShader } from '@/shaders/HorizonTextureShader/horizonTextureShader';
 import { AstroCalc, SpaceTimeController, Settings, WWTControl } from "@wwtelescope/engine";
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
 import { engineStore } from '@wwtelescope/engine-pinia';
@@ -145,12 +146,23 @@ const horizonshader = {
   }
 };
 
+const horizonTextureShader = {
+  name: "Horizon Texture",
+  code: () => {
+    if (!in3d) {
+      HorizonTextureShader.setScale(usePixelScale.value ? 'screen' : 'world');
+      HorizonTextureShader.use(WWTControl.singleton.renderContext, location.lat, location.lon);
+    }
+  }
+};
+
 const allShaders = [
   linesShader,
   deadSimpleShader,
   fullscreenshader,
   suntrackershader,
   horizonshader,
+  horizonTextureShader,
   {name: 'None', code: () => {return;}}
 ] as const;
 const shaders = new Map<typeof allShaders[0]['name'], () => void>();
@@ -162,7 +174,7 @@ allShaders.map(v => {
 
 
 
-const selectedShader = ref<typeof allShaders[0]['name']>('Horizon');
+const selectedShader = ref<typeof allShaders[0]['name']>('Horizon Texture');
 
 const selectedShaderFunction = computed(() => {
   if (shaders.has(selectedShader.value)) {
@@ -171,16 +183,18 @@ const selectedShaderFunction = computed(() => {
   return () => {return;};
 });
 
+const behindGrid = ['Horizon', 'Horizon Texture'];
+
 onMounted(() => {
   store.waitForReady().then(async () => {
     renderOneFrame();
     addBeforeWWTSkyOverlays(() => {
-      if (selectedShader.value === 'Horizon' && selectedShaderFunction.value) {
+      if (behindGrid.includes(selectedShader.value) && selectedShaderFunction.value) {
         selectedShaderFunction.value();
       }
     });
     addToWWTRenderLoop(() => {
-      if (selectedShader.value !== 'Horizon' && selectedShaderFunction.value) {
+      if (!behindGrid.includes(selectedShader.value) && selectedShaderFunction.value) {
         selectedShaderFunction.value();
       }
     });
