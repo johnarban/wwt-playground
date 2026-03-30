@@ -114,7 +114,7 @@ HorizonTextureShader.initializePanoramaTexture = function (gl: WebGLRenderingCon
     }
     HorizonTextureShader.panoramaLoaded = true;
   };
-  image.src = '/panorama.png';
+  image.src = './panorama.png';
   // image.src = '/Milky_Way_360_equirectangular_rendering_with_foreground_stars_removed.png';
 };
 
