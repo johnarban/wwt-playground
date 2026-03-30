@@ -2,11 +2,20 @@
 precision highp float;
 
 varying vec2 vPixelPosition;
+varying float vSunVisible;
+varying vec2 vSunClipSpace;
+
+uniform float uAspectRatio;
+
+uniform vec3 uZenith;
 uniform mat4 uInverseWorldViewMatrix;
 uniform mat4 uPMatrix;
+uniform bool uUsePixelSize;
+
 uniform float uSiderealTime;
 uniform float uSinLat;
 uniform float uCosLat;
+uniform vec3 uSunDirection;
 uniform sampler2D uPanorama;
 
 const float PI = 3.14159265358979323846; // 20 digits of PI
@@ -21,6 +30,10 @@ vec3 skyDirFromNdc(vec2 ndc) {
     );
     // inverse transform with with w = 0 (doesn't seem to matter)
     return normalize((uInverseWorldViewMatrix * vec4(viewRay, 0.0)).xyz);
+}
+
+float sphericalDistance(vec3 a, vec3 b) {
+    return atan(length(cross(a, b)), dot(a, b));
 }
 
 vec2 equatorialVecToRaDec(vec3 dir) {
@@ -52,37 +65,58 @@ vec2 equatorialToHorizon(vec2 raDec) {
     return vec2(azimuth, altitude);
 }
 
+float skyOpacityForSunAlt(float sinSunAltRad) {
+    float civilTwilight = -6.0 * PI / 180.0;
+    float astronomicalTwilight = 3.0 * civilTwilight;
+    return clamp((1.0 + atan(PI * asin(sinSunAltRad) / (-1.0 * astronomicalTwilight))) / 2.0, 0.0, 1.0);
+}
+
+float panoramaBrightnessForSunAlt(float sinSunAltRad) {
+    // Reuse the twilight curve, but keep a floor so the panorama darkens
+    // at low sun altitude instead of disappearing into black.
+    float daylight = skyOpacityForSunAlt(sinSunAltRad);
+    return mix(0.20, 1.0, daylight);
+}
+
 void main() {    
-    // Start from the current fragment's screen position, convert that into a
-    // 3D ray in the sky, then into local horizon coordinates.
     vec3 currentCoord = skyDirFromNdc(vPixelPosition);
     vec2 raDec = equatorialVecToRaDec(currentCoord);
     vec2 altAz = equatorialToHorizon(raDec);
 
-    // The panorama is equirectangular in horizontal coordinates:
-    // - horizontally it stores azimuth from 0 to 2*PI
-    // - vertically it stores altitude from +PI/2 at the top to -PI/2 at the bottom
-    //
-    // So we map:
-    //   u = azimuth / (2*PI)
-    //   v = 0.5 - altitude / PI
-    //
-    // Why the v formula looks like this:
-    // - altitude = 0     -> v = 0.5 (horizon in the middle)
-    // - altitude = +PI/2 -> v = 0.0 (zenith at the top)
-    // - altitude = -PI/2 -> v = 1.0 (nadir at the bottom)
-    //
-    // fract() wraps azimuth so 0 and 2*PI land on the same vertical seam.
-    // clamp() keeps numerical roundoff from sampling outside the image.
     vec2 uv = vec2(
         fract(altAz.x / (2.0 * PI)),
         clamp(0.5 - (altAz.y / PI), 0.0, 1.0)
     );
 
-    vec4 color = texture2D(uPanorama, uv);
-    // if near sky blue set to transparent
-    if (color.r < 0.3 && color.g > 0.5 && color.b > 0.5) {
-        discard;
+    float sinAlt = dot(currentCoord, normalize(uZenith));
+    float sinSunAlt = dot(normalize(uSunDirection), normalize(uZenith));
+
+    float aa = 0.00001;
+    float horizonMix = smoothstep(-aa, aa, sinAlt);
+    vec4 skyColor = vec4(0.01, 0.9, 0.97, 0.9 * skyOpacityForSunAlt(sinSunAlt));
+    vec4 groundColor = vec4(105.0 / 255.0, 97.0 / 255.0, 18.0 / 255.0, 0.9);
+    vec4 skyGroundColor = mix(groundColor, skyColor, horizonMix);
+
+    vec4 panoramaColor = texture2D(uPanorama, uv);
+    panoramaColor.rgb *= panoramaBrightnessForSunAlt(sinSunAlt);
+
+    bool inCircle = false;
+    if (uUsePixelSize) {
+        vec2 vectorSub = vPixelPosition - vSunClipSpace;
+        vectorSub.x = vectorSub.x * uAspectRatio;
+        float dist = length(vectorSub);
+        inCircle = dist <= 0.075;
+    } else {
+        inCircle = sphericalDistance(normalize(uSunDirection), currentCoord) <= (15.0 / 60.0) * PI / 180.0;
     }
-    gl_FragColor = color;
+
+    // The sun disk lives in the flat background layer, so the panorama can
+    // cover it anywhere the texture is opaque.
+    if (inCircle && vSunVisible > 0.5) {
+        skyGroundColor = vec4(1.0, 1.0, 0.0, 1.0);
+    }
+
+    // The PNG alpha decides where the panorama overrides the procedural
+    // sky/ground colors and where the flat background shows through.
+    gl_FragColor = mix(skyGroundColor, panoramaColor, clamp(panoramaColor.a*2.0, 0.0, 1.0));
 }
