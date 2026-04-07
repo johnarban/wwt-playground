@@ -184,6 +184,7 @@ function goHome() {
   moveViewCamera(INITIAL_VIEW, false);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-function
 let copyViewUrl: () => Promise<void> = async () => {};
 
 onMounted(() => {
