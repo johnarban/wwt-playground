@@ -189,6 +189,8 @@ let copyViewUrl: () => Promise<void> = async () => {};
 
 onMounted(() => {
   store.waitForReady().then(async () => {
+    WWTControl.singleton.set_zoomMax(ZOOM_MAX);
+    WWTControl.singleton.setSolarSystemMaxZoom(ZOOM_MAX);
     store.setBackgroundImageByName("Solar System");
     store.setTrackedObject(SolarSystemObjects.moon);
     ({ copyViewUrl } = useCameraUrl(INITIAL_VIEW));
