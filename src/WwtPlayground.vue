@@ -160,11 +160,9 @@ const positionSet = ref(false);
 const accentColor = ref("#ffffff");
 const buttonColor = ref("#ffffff");
 const INITIAL_VIEW: CameraView = {
-  // lng = ((360 - raHours * 15) % 360 + 360) % 360 where raHours was 12.623204
-  // lat = dec in degrees
-  lng: 176.724856,
-  lat: -5.103,
-  zoomDeg: 0.000272,
+  lng: 169.906038,
+  lat: 1.323000,
+  zoomDeg: 0.000163,
   rotationDeg: 0,
   angleDeg: 0,
   opacity: 100,
