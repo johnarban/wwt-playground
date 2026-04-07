@@ -98,8 +98,8 @@ import { GotoRADecZoomParams, engineStore } from "@wwtelescope/engine-pinia";
 import { BackgroundImageset, supportsTouchscreen, useWWTKeyboardControls, CreditLogos, IconButton } from "@cosmicds/vue-toolkit";
 import { useDisplay } from "vuetify";
 import { D2R, H2R  } from "@wwtelescope/astro";
-import { AstroCalc } from "@wwtelescope/engine";
-import { SolarSystemObjects } from "@wwtelescope/engine-types";
+import { AstroCalc, Color } from "@wwtelescope/engine";
+import { CoordinatesType, MarkerScales, ReferenceFrames, SolarSystemObjects } from "@wwtelescope/engine-types";
 import ArtemisTimeControl from "./components/ArtemisTimeControl.vue";
 
 import { useCameraUrl } from "./composables/useCameraUrl";
@@ -183,16 +183,45 @@ function onZoomSlider(e: Event) {
 function goHome() {
   moveViewCamera(INITIAL_VIEW, false);
 }
-
+import { AltUnits } from "@wwtelescope/engine-types";
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 let copyViewUrl: () => Promise<void> = async () => {};
-
+import { loadHorizonsVectorsForWwt } from "./horizons";
 onMounted(() => {
   store.waitForReady().then(async () => {
     WWTControl.singleton.set_zoomMax(ZOOM_MAX);
     WWTControl.singleton.setSolarSystemMaxZoom(ZOOM_MAX);
     store.setBackgroundImageByName("Solar System");
     store.setTrackedObject(SolarSystemObjects.moon);
+    const vec = await loadHorizonsVectorsForWwt('./horizons_results-moon.txt');
+    store.createTableLayer({
+      name: 'Artemis',
+      referenceFrame: 'Sky',
+      dataCsv: vec,
+    }).then(layer => {
+      layer.set_xAxisColumn(2);
+      layer.set_yAxisColumn(3);
+      layer.set_zAxisColumn(4);
+      layer.set_coordinatesType(CoordinatesType.rectangular);
+      layer.set_astronomical(true);
+      layer.set_cartesianScale(AltUnits.astronomicalUnits);
+      layer.set_altUnit(AltUnits.astronomicalUnits);
+      layer.set_markerScale(MarkerScales.screen);
+      layer.set_scaleFactor(10);
+      layer.set_color(Color.fromHex("#ffffff"));
+      layer.set_showFarSide(true);
+      layer.set_opacity(50);
+      // set_startDateColumn, set_delay. want endDateCol to be the next point
+      store.applyTableLayerSettings({
+        id: layer.id.toString(),
+        settings: [
+          // ["scaleFactor", 0.1],
+          
+        ]
+      });
+      console.log(layer);
+    });
+    
     ({ copyViewUrl } = useCameraUrl(INITIAL_VIEW));
     positionSet.value = true;
     layersLoaded.value = true;
