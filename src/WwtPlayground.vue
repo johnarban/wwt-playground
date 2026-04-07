@@ -13,7 +13,7 @@
 
 
       <!-- This contains the splash screen content -->
-    
+
 
       <!-- This block contains the elements (e.g. icon buttons displayed at/near the top of the screen -->
       <div id="wwt-overlay">
@@ -103,7 +103,7 @@ import { CoordinatesType, MarkerScales, ReferenceFrames, SolarSystemObjects } fr
 import ArtemisTimeControl from "./components/ArtemisTimeControl.vue";
 
 import { useCameraUrl } from "./composables/useCameraUrl";
-import { moveViewCamera, type CameraView } from "./wwt-hacks";
+import { moveViewCamera, getCoordinatesForScreenPoint,getScreenPointForCoordinates, transformPickPointToWorldSpace, transformWorldPointToPickSpace, type CameraView } from "./wwt-hacks";
 import { WWTControl } from "@wwtelescope/engine";
 
 const ZOOM_MIN   = 0.00006;
@@ -183,6 +183,14 @@ function onZoomSlider(e: Event) {
 function goHome() {
   moveViewCamera(INITIAL_VIEW, false);
 }
+
+function doWWTHacks() {
+  WWTControl.singleton.getScreenPointForCoordinates = getScreenPointForCoordinates.bind(WWTControl.singleton);
+  WWTControl.singleton.getCoordinatesForScreenPoint = getCoordinatesForScreenPoint.bind(WWTControl.singleton);
+  WWTControl.singleton.transformWorldPointToPickSpace = transformWorldPointToPickSpace.bind(WWTControl.singleton);
+  WWTControl.singleton.transformPickPointToWorldSpace = transformPickPointToWorldSpace.bind(WWTControl.singleton);
+}
+
 import { AltUnits } from "@wwtelescope/engine-types";
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 let copyViewUrl: () => Promise<void> = async () => {};
@@ -216,12 +224,12 @@ onMounted(() => {
         id: layer.id.toString(),
         settings: [
           // ["scaleFactor", 0.1],
-          
+
         ]
       });
       console.log(layer);
     });
-    
+
     ({ copyViewUrl } = useCameraUrl(INITIAL_VIEW));
     positionSet.value = true;
     layersLoaded.value = true;
@@ -256,7 +264,7 @@ const cssVars = computed(() => {
 #app {
   // Vuetify's root app element fills the viewport.
   overflow: hidden;
-  // Vuetify's root app element is a column flex layout 
+  // Vuetify's root app element is a column flex layout
   // lets #main-content take the remaining height
   // after `#bottom-drawer` takes its own height.
 }
@@ -266,7 +274,7 @@ const cssVars = computed(() => {
   // This is the containing block for the absolutely positioned WWT host and overlay.
   position: relative;
   display: block; // don't need to set width. block elements stretch to fill their container by default.
-  
+
   // Its height is determined by the flex layout in `#app`.
   flex: 1 0 auto;
   overflow: hidden;
@@ -313,7 +321,7 @@ The overlay itself is out of flow, but its children can use normal flex layout i
 you can also do position: relative, height: 100%. (and remove the inset: 0)
 - absolute + inset: 0 says “this is a layer pinned to the container”
 - relative + height: 100% says “this is a normal child trying to be as tall as its parent”
-we use the absolute variant to stay more independent of the which can interact weirdly with WWT's resizing. 
+we use the absolute variant to stay more independent of the which can interact weirdly with WWT's resizing.
 and the relative still requires the parent to have a definite size.
 and remember, position:absolute is still a positioned parent, so children can be absolute against it
 */
@@ -325,7 +333,7 @@ and remember, position:absolute is still a positioned parent, so children can be
   right: 0;
   padding: 1rem;
   pointer-events: none;
-  
+
   display: flex;
   flex-direction: column;
   justify-content: space-between; // pushes top and bottom content apart
@@ -411,12 +419,12 @@ and remember, position:absolute is still a positioned parent, so children can be
   #body-logos {
     align-self: flex-end;
   }
-  
+
   #icons-container {
     display: flex;
     justify-content: flex-end;
   }
-  
+
   .toolkit-credit {
     font-size: 0.65rem;
     color: rgba(255,255,255,0.55);
@@ -451,7 +459,7 @@ and remember, position:absolute is still a positioned parent, so children can be
   #wwt-overlay {
     border: 3px solid aqua;
   }
-  
+
 }
 
 #bottom-drawer {
