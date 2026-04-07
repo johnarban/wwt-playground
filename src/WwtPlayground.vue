@@ -61,13 +61,15 @@
           >
             <CreditLogos
               :default-logos="['cosmicds', 'wwt']"
-              :extra-logos="[{
-                alt: 'Windowpane Production.',
-                href: 'https://johnarban.github.io',
-                src:'windowpane.png'
-              }
-              ] as never[]"
             />
+            <p class="toolkit-credit">
+              Interactive developed using the
+              <a
+                href="https://github.com/cosmicds/vue-toolkit"
+                target="_blank"
+                rel="noopener"
+              >CosmicDS toolkit</a>
+            </p>
           </div>
         </div>
       </div>
@@ -377,8 +379,18 @@ and remember, position:absolute is still a positioned parent, so children can be
   #body-logos {
     align-self: flex-end;
   }
-  img[alt="Windowpane Production."] {
-    background-color: rgba(255, 255, 255, 0.3);
+  
+  #icons-container {
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  .toolkit-credit {
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.55);
+    text-align: right;
+    margin: 2px 0 0;
+    a { color: inherit; text-decoration: underline; }
   }
 }
 
