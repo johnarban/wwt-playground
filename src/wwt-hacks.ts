@@ -1,6 +1,44 @@
 import { WWTControl } from "@wwtelescope/engine";
 import type { engineStore } from '@wwtelescope/engine-pinia';
 
+// ─── Camera view type ────────────────────────────────────────────────────────
+
+export interface CameraView {
+  lng: number;
+  lat: number;
+  zoomDeg: number;
+  rotationDeg: number;
+  angleDeg: number;
+  opacity: number;
+}
+
+/**
+ * Move the WWT camera to the given view without changing the tracked object.
+ * followed google codewiki advice
+**/
+export function moveViewCamera(view: CameraView, instant = false): void {
+  const control = WWTControl.singleton;
+  const rc = control.renderContext;
+
+  rc.targetCamera.lat      = view.lat;
+  rc.targetCamera.lng      = view.lng;
+  rc.targetCamera.zoom     = view.zoomDeg;
+  rc.targetCamera.rotation = view.rotationDeg;
+  rc.targetCamera.angle    = view.angleDeg;
+  rc.targetCamera.opacity  = view.opacity;
+
+  if (instant) {
+    rc.viewCamera.lat      = rc.targetCamera.lat;
+    rc.viewCamera.lng      = rc.targetCamera.lng;
+    rc.viewCamera.zoom     = rc.targetCamera.zoom;
+    rc.viewCamera.rotation = rc.targetCamera.rotation;
+    rc.viewCamera.angle    = rc.targetCamera.angle;
+    rc.viewCamera.opacity  = rc.targetCamera.opacity;
+  }
+
+  control.renderOneFrame();
+}
+
 let wwtReady = false;
 export async function waitForWWTReady(store: ReturnType<typeof engineStore>): Promise<void> {
   // by @Carifio24

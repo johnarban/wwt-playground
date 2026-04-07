@@ -20,21 +20,16 @@
         <div id="top-content">
           <div id="left-buttons">
             <icon-button
-              icon="book-open"
+              icon="mdi-home"
               :color="buttonColor"
               tooltip-location="start"
-              @activate="toggleSheet"
+              @activate="goHome"
             >
             </icon-button>
           </div>
           <div id="center-buttons">
           </div>
           <div id="right-buttons">
-            <brightness-contrast
-              element=".wwtelescope-component > canvas"
-              :initial-brightness="2.5"
-              :initial-contrast="1"
-            />
           </div>
         </div>
 
@@ -42,6 +37,7 @@
         <!-- This block contains the elements (e.g. the project icons) displayed along the bottom of the screen -->
 
         <div id="bottom-content">
+          <ArtemisTimeControl :can-create="positionSet" />
           <div
             v-if="!smallSize"
             id="body-logos"
@@ -78,15 +74,17 @@
 
 <script setup lang="ts">
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ref, reactive, computed, onMounted, nextTick, watch, type Ref } from "vue";
+import { ref, reactive, computed, onMounted } from "vue";
 import { GotoRADecZoomParams, engineStore } from "@wwtelescope/engine-pinia";
-import { BackgroundImageset, skyBackgroundImagesets, supportsTouchscreen, blurActiveElement, useWWTKeyboardControls, WWTEngineStore, CreditLogos, IconButton } from "@cosmicds/vue-toolkit";
+import { BackgroundImageset, supportsTouchscreen, useWWTKeyboardControls, CreditLogos, IconButton } from "@cosmicds/vue-toolkit";
 import { useDisplay } from "vuetify";
-import { D2R, R2D, H2D, R2H, H2R, D2H  } from "@wwtelescope/astro";
-import { AstroCalc, WWTControl, SpaceTimeController, Settings } from "@wwtelescope/engine";
+import { D2R, H2R  } from "@wwtelescope/astro";
+import { AstroCalc } from "@wwtelescope/engine";
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
+import ArtemisTimeControl from "./components/ArtemisTimeControl.vue";
 
-import { watchWwtContainerSize } from "./composables/wwtContainerSize";
+import { useCameraUrl } from "./composables/useCameraUrl";
+import { moveViewCamera, type CameraView } from "./wwt-hacks";
 // watchWwtContainerSize('.wwtelescope-component', '#main-content');
 
 type SheetType = "text" | "video";
@@ -123,24 +121,27 @@ const layersLoaded = ref(false);
 const positionSet = ref(false);
 const accentColor = ref("#ffffff");
 const buttonColor = ref("#ffffff");
+const INITIAL_VIEW: CameraView = {
+  // lng = ((360 - raHours * 15) % 360 + 360) % 360 where raHours was 12.623204
+  // lat = dec in degrees
+  lng: 176.724856,
+  lat: -5.103,
+  zoomDeg: 0.000272,
+  rotationDeg: 0,
+  angleDeg: 0,
+  opacity: 100,
+};
 
-function toggleSheet() {
-  console.log("toggling sheet");
-  if (sheet.value) {
-    sheet.value = null;
-  } else {
-    sheet.value = "text";
-  }
+function goHome() {
+  moveViewCamera(INITIAL_VIEW, false);
 }
 
 onMounted(() => {
   store.waitForReady().then(async () => {
-    skyBackgroundImagesets.forEach(iset => backgroundImagesets.push(iset));
-    store.gotoRADecZoom({
-      ...props.initialCameraParams,
-      instant: true
-    }).then(() => positionSet.value = true);
-    // If there are layers to set up, do that here!
+    store.setBackgroundImageByName("Solar System");
+    store.setTrackedObject(SolarSystemObjects.moon);
+    useCameraUrl(INITIAL_VIEW);
+    positionSet.value = true;
     layersLoaded.value = true;
   });
 });
@@ -219,7 +220,7 @@ If any of those happen, the ResizeObserver composable may be needed again to pus
   right: 0;
   // The composable sets the host element's inline width/height from #main-content.
   transition: height 0.2s ease-in-out;
-  opacity: 0.5;
+  opacity: 1;
 }
 
 /*
