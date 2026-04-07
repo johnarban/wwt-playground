@@ -1,4 +1,21 @@
-import { WWTControl } from "@wwtelescope/engine";
+import {
+  Annotation,
+  Constellations,
+  Grids,
+  LayerManager,
+  Matrix3d,
+  Planets,
+  Planets3d,
+  RenderTriangle,
+  Settings,
+  SpaceTimeController,
+  Tile,
+  TileCache,
+  TourPlayer,
+  Vector2d,
+  Vector3d,
+  WWTControl,
+} from "@wwtelescope/engine";
 import type { engineStore } from '@wwtelescope/engine-pinia';
 
 // ─── Camera view type ────────────────────────────────────────────────────────
@@ -51,9 +68,9 @@ export async function waitForWWTReady(store: ReturnType<typeof engineStore>): Pr
   });
 }
 
-export function renderOneFrame() {
-  WWTControl.singleton.renderOneFrame();
-}
+// export function renderOneFrame() {
+//   WWTControl.singleton.renderOneFrame();
+// }
 
 
 
@@ -216,18 +233,419 @@ export function transformWorldPointToPickSpace(worldPoint, backBufferWidth, back
     return p;
 }
 
-// In Sky mode, (lon, lat) means (ra, dec)
-export function getScreenPointForCoordinates(lon, lat) {
+// In Sky mode, (x, y) means (ra, dec)
+// In planet-like modes, (x, y) means (lon, lat)
+export function getScreenPointForCoordinates(x, y, z=0) {
     var planetMode = this.get_planetLike();
     var cartesian;
     if (planetMode) {
       lon += 180;
-      cartesian = Coordinates.geoTo3d(lat, lon);
+      cartesian = Coordinates.geoTo3d(y, x);
+    } else if (this.get_solarSystemMode()) {
+      cartesian = Vector3d.create(x, y, z);
     } else {
-      var pt = Vector2d.create(lon, lat);
+      var pt = Vector2d.create(x, y);
       cartesian = Coordinates.sphericalSkyToCartesian(pt);
     }
     var result = this.transformWorldPointToPickSpace(cartesian, this.renderContext.width, this.renderContext.height);
     return result;
 }
 
+export function getDepth(x, y, z) {
+  const pt = this.getScreenPointForCoordinates(x, y, z);
+  const near = -1;
+  const far = 1;
+  const nearPt = this.transformPickPointToWorldSpace(pt, this.renderContext.width, this.renderContext.height, true, near);
+  const farPt = this.transformPickPointToWorldSpace(pt, this.renderContext.width, this.renderContext.height, true, far);
+  // In principle, should give the same value for y and z
+  return (x - nearPt.x) / (farPt.x - nearPt.x);
+}
+
+export function renderOneFrame() {
+    if (this.renderContext.get_backgroundImageset() != null) {
+        this.renderType = this.renderContext.get_backgroundImageset().get_dataSetType();
+    } else {
+        this.renderType = 2;
+    }
+    var sizeChange = false;
+    if (this.canvas.width !== this.canvas.parentNode.clientWidth) {
+        this.canvas.width = this.canvas.parentNode.clientWidth;
+        sizeChange = true;
+    }
+    if (this.canvas.height !== this.canvas.parentNode.clientHeight) {
+        this.canvas.height = this.canvas.parentNode.clientHeight;
+        sizeChange = true;
+    }
+    if (sizeChange && this.explorer != null) {
+        this.explorer.refresh();
+    }
+
+    if (this.canvas.width < 1 || this.canvas.height < 1) {
+        // This can happen during initialization if perhaps some
+        // HTML/JavaScript interaction hasn't happened to set the canvas
+        // size correctly. If we don't exit this function early, we get
+        // NaNs in our transformation matrices that lead IsTileBigEnough
+        // to say "no" for everything so that we spin out of control
+        // downloading maximum-resolution DSS tiles for an enormous
+        // viewport. That's bad!
+        return;
+    }
+
+    if (sizeChange) {
+        // In GL, the crosshairs are in viewport coordinates
+        // ([0,1]x[0,1]), so a size change alters their perceived aspect
+        // ratio.
+        this._crossHairs = null;
+    }
+
+    Tile.lastDeepestLevel = Tile.deepestLevel;
+    RenderTriangle.width = this.renderContext.width = this.canvas.width;
+    RenderTriangle.height = this.renderContext.height = this.canvas.height;
+    Tile.tilesInView = 0;
+    Tile.tilesTouched = 0;
+    Tile.deepestLevel = 0;
+    SpaceTimeController.set_metaNow(new Date());
+    if (this.get__mover() != null) {
+        SpaceTimeController.set_now(this.get__mover().get_currentDateTime());
+        Planets.updatePlanetLocations(this.get_solarSystemMode());
+        if (this.get__mover() != null) {
+            var newCam = this.get__mover().get_currentPosition();
+            this.renderContext.targetCamera = newCam.copy();
+            this.renderContext.viewCamera = newCam.copy();
+            if (this.renderContext.space && Settings.get_active().get_galacticMode()) {
+                var gPoint = Coordinates.j2000toGalactic(newCam.get_RA() * 15, newCam.get_dec());
+                this.renderContext.targetAlt = this.renderContext.alt = gPoint[1];
+                this.renderContext.targetAz = this.renderContext.az = gPoint[0];
+            }
+            else if (this.renderContext.space && Settings.get_active().get_localHorizonMode()) {
+                var currentAltAz = Coordinates.equitorialToHorizon(Coordinates.fromRaDec(newCam.get_RA(), newCam.get_dec()), SpaceTimeController.get_location(), SpaceTimeController.get_now());
+                this.renderContext.targetAlt = this.renderContext.alt = currentAltAz.get_alt();
+                this.renderContext.targetAz = this.renderContext.az = currentAltAz.get_az();
+            }
+            if (this.get__mover().get_complete()) {
+                globalScriptInterface._fireArrived(this.get__mover().get_currentPosition().get_RA(), this.get__mover().get_currentPosition().get_dec(), globalRenderContext.viewCamera.zoom);
+                this.set__mover(null);
+                this._notifyMoveComplete();
+            }
+        }
+    } else {
+        SpaceTimeController.updateClock();
+        Planets.updatePlanetLocations(this.get_solarSystemMode());
+        this._updateViewParameters();
+    }
+    this.renderContext.clear();
+    if (this.renderType === 4) {
+        if (this._solarSystemTrack < 20) {
+            var radius = Planets.getAdjustedPlanetRadius(this._solarSystemTrack);
+            var distance = this.renderContext.get_solarSystemCameraDistance();
+            var camAngle = this.renderContext.get_fovLocal();
+        }
+        if (this._trackingObject == null) {
+        }
+        this.renderContext.setupMatricesSolarSystem(true);
+        var zoom = this.renderContext.viewCamera.zoom;
+        var milkyWayBlend = Math.min(1, Math.max(0, (Math.log(zoom) - 8.4)) / 4.2);
+        var milkyWayBlendIn = Math.min(1, Math.max(0, (Math.log(zoom) - 17.9)) / 2.3);
+        var matOldMW = this.renderContext.get_world();
+        var matLocalMW = this.renderContext.get_world().clone();
+        matLocalMW._multiply(Matrix3d._scaling(100000, 100000, 100000));
+        matLocalMW._multiply(Matrix3d._rotationX(23.5 / 180 * Math.PI));
+        matLocalMW._multiply(Matrix3d.translation(this.renderContext.cameraPosition));
+        this.renderContext.set_world(matLocalMW);
+        this.renderContext.set_worldBase(matLocalMW);
+        this.renderContext.space = true;
+        this.renderContext.makeFrustum();
+        var lighting = this.renderContext.lighting;
+        this.renderContext.lighting = false;
+        if (Settings.get_active().get_solarSystemMilkyWay()) {
+            if (milkyWayBlend < 1) {
+                if (this._milkyWayBackground == null) {
+                    this._milkyWayBackground = this.getImagesetByName('Digitized Sky Survey (Color)');
+                }
+                if (this._milkyWayBackground != null) {
+                    RenderTriangle.cullInside = true;
+                    var c = (1 - milkyWayBlend) / 2;
+                    this.renderContext.drawImageSet(this._milkyWayBackground, c * 100);
+                    RenderTriangle.cullInside = false;
+                }
+            }
+        }
+        this._drawSkyOverlays();
+        this.renderContext.lighting = lighting;
+        this.renderContext.space = false;
+        this.renderContext.set_world(matOldMW);
+        this.renderContext.set_worldBase(matOldMW);
+        this.renderContext.makeFrustum();
+        var oldCamera = this.renderContext.cameraPosition;
+        var matOld = this.renderContext.get_world();
+        var matLocal = this.renderContext.get_world();
+        matLocal._multiply(Matrix3d.translation(this.renderContext.viewCamera.viewTarget));
+        this.renderContext.cameraPosition = Vector3d.subtractVectors(this.renderContext.cameraPosition, this.renderContext.viewCamera.viewTarget);
+        this.renderContext.set_world(matLocal);
+        this.renderContext.makeFrustum();
+        if (Settings.get_active().get_solarSystemCosmos()) {
+            Grids.drawCosmos3D(this.renderContext, 1);
+        }
+        if (Settings.get_active().get_solarSystemMilkyWay() && milkyWayBlendIn > 0) {
+            Grids.drawGalaxyImage(this.renderContext, milkyWayBlendIn);
+        }
+        if (Settings.get_active().get_solarSystemStars()) {
+            Grids.drawStars3D(this.renderContext, 1);
+        }
+        matLocal = matOld;
+        var pnt = this.renderContext.viewCamera.viewTarget;
+        var vt = Vector3d.create(-pnt.x, -pnt.y, -pnt.z);
+        this.renderContext.cameraPosition = oldCamera;
+        matLocal._multiply(Matrix3d.translation(vt));
+        this.renderContext.set_world(matLocal);
+        this.renderContext.makeFrustum();
+
+        let drawLayersFirst = true;
+        if (this.testPoint) {
+          const testDepth = this.getDepth(...this.testPoint);
+          const moonDepth = this.getDepth(0, 0, 0);  // The view is centered on the moon
+          drawLayersFirst = testDepth < moonDepth;
+        }
+        if (drawLayersFirst) {
+          LayerManager._draw(this.renderContext, 1, true, 'Sky', true, false);
+          this.renderContext.set_world(matOld);
+          this.renderContext.makeFrustum();
+        }
+
+        if (this.renderContext.get_solarSystemCameraDistance() < 15000) {
+            this.renderContext.setupMatricesSolarSystem(false);
+            if (Settings.get_active().get_solarSystemMinorPlanets()) {
+                MinorPlanets.drawMPC3D(this.renderContext, 1, this.renderContext.viewCamera.viewTarget);
+            }
+            if (Settings.get_active().get_solarSystemPlanets()) {
+                Planets3d.drawPlanets3D(this.renderContext, 1, this.renderContext.viewCamera.viewTarget);
+            }
+        }
+
+        if (!drawLayersFirst) {
+          LayerManager._draw(this.renderContext, 1, true, 'Sky', true, false);
+          this.renderContext.set_world(matOld);
+          this.renderContext.makeFrustum();
+        }
+
+    } else {
+        // RenderType is not SolarSystem
+        if (!this.renderType || this.renderType === 1) {
+            this.renderContext._setupMatricesLand3d();
+        }
+        else {
+            this.renderContext.setupMatricesSpace3d(this.renderContext.width, this.renderContext.height);
+        }
+        this.renderContext.drawImageSet(this.renderContext.get_backgroundImageset(), 100);
+        if (this.renderContext.get_foregroundImageset() != null) {
+            if (this.renderContext.get_foregroundImageset().get_dataSetType() !== this.renderContext.get_backgroundImageset().get_dataSetType()) {
+                this.renderContext.set_foregroundImageset(null);
+            }
+            else {
+                if (this.renderContext.viewCamera.opacity !== 100 && this.renderContext.gl == null) {
+                    if (this._foregroundCanvas.width !== this.renderContext.width || this._foregroundCanvas.height !== this.renderContext.height) {
+                        this._foregroundCanvas.width = this.renderContext.width;
+                        this._foregroundCanvas.height = this.renderContext.height;
+                    }
+                    var saveDevice = this.renderContext.device;
+                    this._fgDevice.clearRect(0, 0, this.renderContext.width, this.renderContext.height);
+                    this.renderContext.device = this._fgDevice;
+                    this.renderContext.drawImageSet(this.renderContext.get_foregroundImageset(), 100);
+                    this.renderContext.device = saveDevice;
+                    this.renderContext.device.save();
+                    this.renderContext.device.globalAlpha = this.renderContext.viewCamera.opacity / 100;
+                    this.renderContext.device.drawImage(this._foregroundCanvas, 0, 0);
+                    this.renderContext.device.restore();
+                }
+                else {
+                    this.renderContext.drawImageSet(this.renderContext.get_foregroundImageset(), this.renderContext.viewCamera.opacity);
+                }
+            }
+        }
+        if (this.renderType === 2) {
+            for (const imageset in this.renderContext.get_catalogHipsImagesets()) {
+                if (imageset.get_hipsProperties().get_catalogSpreadSheetLayer().enabled && imageset.get_hipsProperties().get_catalogSpreadSheetLayer().lastVersion === imageset.get_hipsProperties().get_catalogSpreadSheetLayer().get_version()) {
+                    this.renderContext.drawImageSet(imageset, 100);
+                }
+            }
+        }
+        if (this.renderType === 2 && Settings.get_active().get_showSolarSystem()) {
+            Planets.drawPlanets(this.renderContext, 1);
+            this.constellation = Constellations.containment.findConstellationForPoint(this.renderContext.viewCamera.get_RA(), this.renderContext.viewCamera.get_dec());
+            this._drawSkyOverlays();
+        }
+        if (this.get_planetLike() || this.get_space()) {
+            if (!this.get_space()) {
+                var angle = Coordinates.mstFromUTC2(SpaceTimeController.get_now(), 0) / 180 * Math.PI;
+                this.renderContext.set_worldBaseNonRotating(Matrix3d.multiplyMatrix(Matrix3d._rotationY(angle), this.renderContext.get_worldBase()));
+                if (this._targetBackgroundImageset != null) {
+                    this.renderContext.set_nominalRadius(this._targetBackgroundImageset.get_meanRadius());
+                }
+            }
+            else {
+                this.renderContext.set_worldBaseNonRotating(this.renderContext.get_world());
+                if (this._targetBackgroundImageset != null) {
+                    this.renderContext.set_nominalRadius(this._targetBackgroundImageset.get_meanRadius());
+                }
+            }
+            var referenceFrame = this.getCurrentReferenceFrame();
+            LayerManager._draw(this.renderContext, 1, this.get_space(), referenceFrame, true, this.get_space());
+        }
+    }
+    var worldSave = this.renderContext.get_world();
+    var viewSave = this.renderContext.get_view();
+    var projSave = this.renderContext.get_projection();
+    if (Settings.get_current().get_showCrosshairs()) {
+        this._drawCrosshairs(this.renderContext);
+    }
+    if (this.uiController != null) {
+        this.uiController.render(this.renderContext);
+    } else {
+        Annotation.prepBatch(this.renderContext);
+        for (const item of this._annotations) {
+            item.draw(this.renderContext);
+        }
+        Annotation.drawBatch(this.renderContext);
+        if ((Date.now() - this._lastMouseMove) > 400) {
+            var ptDown = this.getCoordinatesForScreenPoint(this._hoverTextPoint.x, this._hoverTextPoint.y);
+            if (ptDown) {
+              this._annotationHover(ptDown.x, ptDown.y, this._hoverTextPoint.x, this._hoverTextPoint.y);
+              this._lastMouseMove = new Date(2100, 1, 1);
+            }
+        }
+        if (this._hoverText) {
+            this._drawHoverText(this.renderContext);
+        }
+    }
+    var tilesAllLoaded = !TileCache.get_queueCount();
+    this.renderContext.setupMatricesOverlays();
+    this._fadeFrame();
+    this._frameCount++;
+    TileCache.decimateQueue();
+    TileCache.processQueue(this.renderContext);
+    Tile.currentRenderGeneration++;
+    if (!TourPlayer.get_playing()) {
+        this.set_crossFadeFrame(false);
+    }
+
+    // Restore Matrices for Finder Scope and such to map points
+    this.renderContext.set_world(worldSave);
+    this.renderContext.set_view(viewSave);
+    this.renderContext.set_projection(projSave);
+    const now = Date.now();
+    var ms = now - this._lastUpdate;
+    if (ms > 1000) {
+        this._lastUpdate = now;
+        this._frameCount = 0;
+        RenderTriangle.trianglesRendered = 0;
+        RenderTriangle.trianglesCulled = 0;
+    }
+    if (this.capturingVideo) {
+        if ((this.dumpFrameParams != null) && (!this.dumpFrameParams.waitDownload || tilesAllLoaded)) {
+            this.captureFrameForVideo(this._videoBlobReady, this.dumpFrameParams.width, this.dumpFrameParams.height, this.dumpFrameParams.format);
+            SpaceTimeController.nextFrame();
+        }
+        if (SpaceTimeController.get_doneDumping()) {
+            SpaceTimeController.frameDumping = false;
+            SpaceTimeController.cancelFrameDump = false;
+            this.capturingVideo = false;
+        }
+    }
+}
+
+export function makeFrustum() {
+    this.WV = Matrix3d.multiplyMatrix(this.get_world(), this.get_view());
+    var viewProjection = Matrix3d.multiplyMatrix(this.WV, this.get_projection());
+    this.WVP = viewProjection.clone();
+    var inverseWorld = this.get_world().clone();
+    inverseWorld.invert();
+
+    // Left plane
+    this._frustum[0].a = viewProjection.get_m14() + viewProjection.get_m11();
+    this._frustum[0].b = viewProjection.get_m24() + viewProjection.get_m21();
+    this._frustum[0].c = viewProjection.get_m34() + viewProjection.get_m31();
+    this._frustum[0].d = viewProjection.get_m44() + viewProjection.get_m41();
+
+    // Right plane
+    this._frustum[1].a = viewProjection.get_m14() - viewProjection.get_m11();
+    this._frustum[1].b = viewProjection.get_m24() - viewProjection.get_m21();
+    this._frustum[1].c = viewProjection.get_m34() - viewProjection.get_m31();
+    this._frustum[1].d = viewProjection.get_m44() - viewProjection.get_m41();
+
+    // Top plane
+    this._frustum[2].a = viewProjection.get_m14() - viewProjection.get_m12();
+    this._frustum[2].b = viewProjection.get_m24() - viewProjection.get_m22();
+    this._frustum[2].c = viewProjection.get_m34() - viewProjection.get_m32();
+    this._frustum[2].d = viewProjection.get_m44() - viewProjection.get_m42();
+
+    // Bottom plane
+    this._frustum[3].a = viewProjection.get_m14() + viewProjection.get_m12();
+    this._frustum[3].b = viewProjection.get_m24() + viewProjection.get_m22();
+    this._frustum[3].c = viewProjection.get_m34() + viewProjection.get_m32();
+    this._frustum[3].d = viewProjection.get_m44() + viewProjection.get_m42();
+
+    // Near plane
+    this._frustum[4].a = viewProjection.get_m13();
+    this._frustum[4].b = viewProjection.get_m23();
+    this._frustum[4].c = viewProjection.get_m33();
+    this._frustum[4].d = viewProjection.get_m43();
+    if (this.get_backgroundImageset().get_dataSetType() <2 || this.get_backgroundImageset().get_dataSetType() == 4) {
+      this._frustum[4].a += viewProjection.get_m14();
+      this._frustum[4].b += viewProjection.get_m24();
+      this._frustum[4].c += viewProjection.get_m34();
+      this._frustum[4].d += viewProjection.get_m44();
+    }
+
+    // Far plane
+    this._frustum[5].a = viewProjection.get_m14() - viewProjection.get_m13();
+    this._frustum[5].b = viewProjection.get_m24() - viewProjection.get_m23();
+    this._frustum[5].c = viewProjection.get_m34() - viewProjection.get_m33();
+    this._frustum[5].d = viewProjection.get_m44() - viewProjection.get_m43();
+
+    // Normalize planes
+    for (var i = 0; i < 6; i++) {
+        this._frustum[i].normalize();
+    }
+    this._frustumDirty = false;
+    this.WVP.scale(Vector3d.create(this.width / 2, -this.height / 2, 1));
+    this.WVP.translate(Vector3d.create(this.width / 2, this.height / 2, 0));
+    this._setMatrixes();
+}
+
+// TODO: This doesn't work
+// export function getTableDataInView() {
+//     var data = '';
+//     var first = true;
+//     for (const col of this.get_header()) {
+//         if (!first) {
+//             data += '\t';
+//         }
+//         else {
+//             first = false;
+//         }
+//         data += col;
+//     }
+//     data += '\r\n';
+//     const planetMode = WWTControl.singleton.renderContext.get_backgroundImageset().get_dataSetType() < 2;
+//     for (const row of this.get__table().rows) {
+//         var x = parseFloat(row[this.get_xAxisColumn()]);
+//         var y = parseFloat(row[this.get_yAxisColumn()]);
+//         var z = parseFloat(row[this.get_zAxisColumn()]);
+//         var position = Vector3d.create(x, y, z);
+//         if (!this._isPointInFrustum$1(position, WWTControl.singleton.renderContext.get_frustum())) {
+//             continue;
+//         }
+//         first = true;
+//         for (const col of row) {
+//             if (!first) {
+//                 data += '\t';
+//             }
+//             else {
+//                 first = false;
+//             }
+//             data += col;
+//         }
+//         data += '\r\n';
+//     }
+//     return data;
+// }

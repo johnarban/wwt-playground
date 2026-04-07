@@ -103,7 +103,7 @@ import { CoordinatesType, MarkerScales, ReferenceFrames, SolarSystemObjects } fr
 import ArtemisTimeControl from "./components/ArtemisTimeControl.vue";
 
 import { useCameraUrl } from "./composables/useCameraUrl";
-import { moveViewCamera, getCoordinatesForScreenPoint,getScreenPointForCoordinates, transformPickPointToWorldSpace, transformWorldPointToPickSpace, type CameraView } from "./wwt-hacks";
+import { moveViewCamera, getDepth, getCoordinatesForScreenPoint,getScreenPointForCoordinates, transformPickPointToWorldSpace, transformWorldPointToPickSpace, renderOneFrame, makeFrustum, type CameraView } from "./wwt-hacks";
 import { WWTControl } from "@wwtelescope/engine";
 
 const ZOOM_MIN   = 0.00006;
@@ -189,6 +189,9 @@ function doWWTHacks() {
   WWTControl.singleton.getCoordinatesForScreenPoint = getCoordinatesForScreenPoint.bind(WWTControl.singleton);
   WWTControl.singleton.transformWorldPointToPickSpace = transformWorldPointToPickSpace.bind(WWTControl.singleton);
   WWTControl.singleton.transformPickPointToWorldSpace = transformPickPointToWorldSpace.bind(WWTControl.singleton);
+  WWTControl.singleton.renderOneFrame = renderOneFrame.bind(WWTControl.singleton);
+  WWTControl.singleton.getDepth = getDepth.bind(WWTControl.singleton);
+  WWTControl.singleton.renderContext.makeFrustum = makeFrustum.bind(WWTControl.singleton.renderContext);
 }
 
 import { AltUnits } from "@wwtelescope/engine-types";
@@ -199,6 +202,10 @@ onMounted(() => {
   store.waitForReady().then(async () => {
     WWTControl.singleton.set_zoomMax(ZOOM_MAX);
     WWTControl.singleton.setSolarSystemMaxZoom(ZOOM_MAX);
+
+    WWTControl.singleton.renderOneFrame();
+    doWWTHacks();
+
     store.setBackgroundImageByName("Solar System");
     store.setTrackedObject(SolarSystemObjects.moon);
     const vec = await loadHorizonsVectorsForWwt('./horizons_results-moon.txt');
@@ -227,7 +234,25 @@ onMounted(() => {
 
         ]
       });
+
       console.log(layer);
+
+      // double underscore is intentional
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      const table = layer.get__table(); const count = table.rows.length;
+      const center = Math.floor(count / 2);
+
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      const pt = table.rows[center];
+      const x = Number(pt[layer.get_xAxisColumn()]);
+      const y = Number(pt[layer.get_yAxisColumn()]);
+      const z = Number(pt[layer.get_zAxisColumn()]);
+
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      WWTControl.singleton.testPoint = [x, y, z];
     });
 
     ({ copyViewUrl } = useCameraUrl(INITIAL_VIEW));
