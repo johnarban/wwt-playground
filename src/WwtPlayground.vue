@@ -26,10 +26,27 @@
               @activate="goHome"
             >
             </icon-button>
+            <span class="zoom-label">+</span>
+            <input
+              type="range"
+              class="zoom-slider"
+              min="0"
+              max="1"
+              step="0.001"
+              :value="zoomSliderValue"
+              @input="onZoomSlider"
+            />
+            <span class="zoom-label">−</span>
           </div>
           <div id="center-buttons">
           </div>
           <div id="right-buttons">
+            <button
+              class="copy-url-btn"
+              @click="copyViewUrl"
+            >
+              Copy view URL
+            </button>
           </div>
         </div>
 
@@ -85,6 +102,27 @@ import ArtemisTimeControl from "./components/ArtemisTimeControl.vue";
 
 import { useCameraUrl } from "./composables/useCameraUrl";
 import { moveViewCamera, type CameraView } from "./wwt-hacks";
+import { WWTControl } from "@wwtelescope/engine";
+
+const ZOOM_MIN   = 0.00006;
+const ZOOM_MAX   = 240;
+const LOG_MIN    = Math.log(ZOOM_MIN);
+const LOG_MAX    = Math.log(ZOOM_MAX);
+// Power < 1 stretches the small-fov (zoomed-in) end of the slider.
+const ZOOM_POWER = 3.5;
+
+// Map linear slider position [0,1] → stretched slider position [0,1].
+const stretchSlider   = (t: number) => Math.pow(t, ZOOM_POWER);
+// Inverse: stretched slider position → linear slider position.
+const unstretchSlider = (t: number) => Math.pow(t, 1 / ZOOM_POWER);
+
+function fovToSlider(fov: number): number {
+  const linear = (Math.log(fov) - LOG_MIN) / (LOG_MAX - LOG_MIN);
+  return unstretchSlider(linear);
+}
+function sliderToFov(t: number): number {
+  return Math.exp(LOG_MIN + stretchSlider(t) * (LOG_MAX - LOG_MIN));
+}
 // watchWwtContainerSize('.wwtelescope-component', '#main-content');
 
 type SheetType = "text" | "video";
@@ -132,15 +170,27 @@ const INITIAL_VIEW: CameraView = {
   opacity: 100,
 };
 
+const zoomSliderValue = computed(() => fovToSlider(store.zoomDeg));
+
+function onZoomSlider(e: Event) {
+  const fov = sliderToFov(+(e.target as HTMLInputElement).value);
+  const rc = WWTControl.singleton.renderContext;
+  rc.targetCamera.zoom = fov;
+  rc.viewCamera.zoom   = fov;
+  WWTControl.singleton.renderOneFrame();
+}
+
 function goHome() {
   moveViewCamera(INITIAL_VIEW, false);
 }
+
+let copyViewUrl: () => Promise<void> = async () => {};
 
 onMounted(() => {
   store.waitForReady().then(async () => {
     store.setBackgroundImageByName("Solar System");
     store.setTrackedObject(SolarSystemObjects.moon);
-    useCameraUrl(INITIAL_VIEW);
+    ({ copyViewUrl } = useCameraUrl(INITIAL_VIEW));
     positionSet.value = true;
     layersLoaded.value = true;
   });
@@ -263,6 +313,32 @@ and remember, position:absolute is still a positioned parent, so children can be
   display: flex;
   flex-direction: column;
   gap: 10px;
+  align-items: center;
+
+  .zoom-slider {
+    writing-mode: vertical-lr;
+    height: 120px;
+    accent-color: #fff;
+    pointer-events: auto;
+    cursor: pointer;
+    opacity: 0.75;
+    &:hover { opacity: 1; }
+  }
+
+  .zoom-label {
+    background: #000;
+    border: 1px solid #fff;
+    border-radius: 3px;
+    color: #fff;
+    width: 20px;
+    height: 20px;
+    font-size: 0.9rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+  }
 }
 
 #center-buttons {
@@ -277,6 +353,18 @@ and remember, position:absolute is still a positioned parent, so children can be
   gap: 10px;
   align-items: flex-end;
   height: auto;
+
+  .copy-url-btn {
+    pointer-events: auto;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 4px;
+    color: #fff;
+    font-size: 0.8rem;
+    padding: 4px 10px;
+    cursor: pointer;
+    &:hover { background: rgba(255, 255, 255, 0.25); }
+  }
 }
 
 #bottom-content {
