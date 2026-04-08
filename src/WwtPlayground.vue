@@ -208,12 +208,16 @@ onMounted(() => {
     doWWTHacks();
 
     store.setBackgroundImageByName("Solar System");
+    store.applySetting(["actualPlanetScale", true]);
+    store.applySetting(["solarSystemCosmos", true]);
+    store.applySetting(["solarSystemMilkyWay", true]);
     store.setTrackedObject(SolarSystemObjects.moon);
 
     const vec = await loadHorizonsVectorsForWwt('./horizons_results-moon.txt');
     const items = vec.split("\r\n");
     const header = items.shift();
     let bounds: [number, number][] = [];
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     const N = 10;
     const centerStart = 1300;
     const centerEnd = 1500;
@@ -240,18 +244,33 @@ onMounted(() => {
         layer.set_scaleFactor(10);
         layer.set_color(Color.fromHex("#ffffff"));
         layer.set_showFarSide(true);
-        layer.set_opacity(50);
-        // set_startDateColumn, set_delay. want endDateCol to be the next point
-        store.applyTableLayerSettings({
-          id: layer.id.toString(),
-          settings: [
-            // ["scaleFactor", 0.1],
-
-          ]
-        });
-
-        console.log(layer);
+        layer.set_opacity(25);
       });
+    });
+
+    
+    store.createTableLayer({
+      name: 'Artemis Time',
+      referenceFrame: 'Sky',
+      dataCsv: vec,
+    }).then(layer => {
+      layer.set_xAxisColumn(2);
+      layer.set_yAxisColumn(3);
+      layer.set_zAxisColumn(4);
+      layer.set_coordinatesType(CoordinatesType.rectangular);
+      layer.set_astronomical(true);
+      layer.set_cartesianScale(AltUnits.astronomicalUnits);
+      layer.set_altUnit(AltUnits.astronomicalUnits);
+      layer.set_markerScale(MarkerScales.screen);
+      layer.set_scaleFactor(20);
+      layer.set_color(Color.fromHex("#ff0000"));
+      layer.set_showFarSide(true);
+      layer.set_opacity(100);
+      layer.set_startDateColumn(1);
+      layer.set_endDateColumn(5);
+      layer.set_decay(5 / (60 * 24));
+      layer.set_timeSeries(true);
+
     });
 
     WWTControl.singleton.shallowLayerTest = function(layer) {
