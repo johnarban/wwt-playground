@@ -13,7 +13,7 @@
 
 
       <!-- This contains the splash screen content -->
-    
+
 
       <!-- This block contains the elements (e.g. icon buttons displayed at/near the top of the screen -->
       <div id="wwt-overlay">
@@ -103,8 +103,8 @@ import { CoordinatesType, MarkerScales, ReferenceFrames, SolarSystemObjects } fr
 import ArtemisTimeControl from "./components/ArtemisTimeControl.vue";
 
 import { useCameraUrl } from "./composables/useCameraUrl";
-import { moveViewCamera, type CameraView } from "./wwt-hacks";
-import { WWTControl } from "@wwtelescope/engine";
+import { moveViewCamera, layerManagerDraw, getDepth, getCoordinatesForScreenPoint,getScreenPointForCoordinates, transformPickPointToWorldSpace, transformWorldPointToPickSpace, renderOneFrame, makeFrustum, type CameraView } from "./wwt-hacks";
+import { LayerManager, WWTControl } from "@wwtelescope/engine";
 
 const ZOOM_MIN   = 0.00006;
 const ZOOM_MAX   = 240;
@@ -183,6 +183,18 @@ function onZoomSlider(e: Event) {
 function goHome() {
   moveViewCamera(INITIAL_VIEW, false);
 }
+
+function doWWTHacks() {
+  WWTControl.singleton.getScreenPointForCoordinates = getScreenPointForCoordinates.bind(WWTControl.singleton);
+  WWTControl.singleton.getCoordinatesForScreenPoint = getCoordinatesForScreenPoint.bind(WWTControl.singleton);
+  WWTControl.singleton.transformWorldPointToPickSpace = transformWorldPointToPickSpace.bind(WWTControl.singleton);
+  WWTControl.singleton.transformPickPointToWorldSpace = transformPickPointToWorldSpace.bind(WWTControl.singleton);
+  WWTControl.singleton.renderOneFrame = renderOneFrame.bind(WWTControl.singleton);
+  WWTControl.singleton.getDepth = getDepth.bind(WWTControl.singleton);
+  WWTControl.singleton.renderContext.makeFrustum = makeFrustum.bind(WWTControl.singleton.renderContext);
+  LayerManager._draw = layerManagerDraw;
+}
+
 import { AltUnits } from "@wwtelescope/engine-types";
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 let copyViewUrl: () => Promise<void> = async () => {};
@@ -191,37 +203,71 @@ onMounted(() => {
   store.waitForReady().then(async () => {
     WWTControl.singleton.set_zoomMax(ZOOM_MAX);
     WWTControl.singleton.setSolarSystemMaxZoom(ZOOM_MAX);
+
+    WWTControl.singleton.renderOneFrame();
+    doWWTHacks();
+
     store.setBackgroundImageByName("Solar System");
     store.setTrackedObject(SolarSystemObjects.moon);
+
     const vec = await loadHorizonsVectorsForWwt('./horizons_results-moon.txt');
-    store.createTableLayer({
-      name: 'Artemis',
-      referenceFrame: 'Sky',
-      dataCsv: vec,
-    }).then(layer => {
-      layer.set_xAxisColumn(2);
-      layer.set_yAxisColumn(3);
-      layer.set_zAxisColumn(4);
-      layer.set_coordinatesType(CoordinatesType.rectangular);
-      layer.set_astronomical(true);
-      layer.set_cartesianScale(AltUnits.astronomicalUnits);
-      layer.set_altUnit(AltUnits.astronomicalUnits);
-      layer.set_markerScale(MarkerScales.screen);
-      layer.set_scaleFactor(10);
-      layer.set_color(Color.fromHex("#ffffff"));
-      layer.set_showFarSide(true);
-      layer.set_opacity(50);
-      // set_startDateColumn, set_delay. want endDateCol to be the next point
-      store.applyTableLayerSettings({
-        id: layer.id.toString(),
-        settings: [
-          // ["scaleFactor", 0.1],
-          
-        ]
+    const items = vec.split("\r\n");
+    const header = items.shift();
+    let bounds: [number, number][] = [];
+    const N = 10;
+    const centerStart = 1300;
+    const centerEnd = 1500;
+    const end = 2600;
+    for (let i = centerStart; i < centerEnd; i += N) {
+      bounds.push([i, i + N]);
+    }
+    bounds = [[0, centerStart], ...bounds, [centerEnd, end]];
+    bounds.forEach((bds) => {
+      const data = items.slice(...bds).join("\r\n");
+      store.createTableLayer({
+        name: 'Artemis',
+        referenceFrame: 'Sky',
+        dataCsv: `${header}\r\n${data}`,
+      }).then(layer => {
+        layer.set_xAxisColumn(2);
+        layer.set_yAxisColumn(3);
+        layer.set_zAxisColumn(4);
+        layer.set_coordinatesType(CoordinatesType.rectangular);
+        layer.set_astronomical(true);
+        layer.set_cartesianScale(AltUnits.astronomicalUnits);
+        layer.set_altUnit(AltUnits.astronomicalUnits);
+        layer.set_markerScale(MarkerScales.screen);
+        layer.set_scaleFactor(10);
+        layer.set_color(Color.fromHex("#ffffff"));
+        layer.set_showFarSide(true);
+        layer.set_opacity(50);
+        // set_startDateColumn, set_delay. want endDateCol to be the next point
+        store.applyTableLayerSettings({
+          id: layer.id.toString(),
+          settings: [
+            // ["scaleFactor", 0.1],
+
+          ]
+        });
+
+        console.log(layer);
       });
-      console.log(layer);
     });
-    
+
+    WWTControl.singleton.shallowLayerTest = function(layer) {
+      const table = layer.get__table();
+      const rows = table.rows;
+      const count = rows.length;
+      const center = Math.floor(count / 2);
+      const centerRow = rows[center];
+      const x = Number(centerRow[layer.get_xAxisColumn()]);
+      const y = Number(centerRow[layer.get_yAxisColumn()]);
+      const z = Number(centerRow[layer.get_zAxisColumn()]);
+      const depth = WWTControl.singleton.getDepth(x, y, z);
+      const moonDepth = WWTControl.singleton.getDepth(0, 0, 0);
+      return depth <= moonDepth;
+    }.bind(this);
+
     ({ copyViewUrl } = useCameraUrl(INITIAL_VIEW));
     positionSet.value = true;
     layersLoaded.value = true;
@@ -256,7 +302,7 @@ const cssVars = computed(() => {
 #app {
   // Vuetify's root app element fills the viewport.
   overflow: hidden;
-  // Vuetify's root app element is a column flex layout 
+  // Vuetify's root app element is a column flex layout
   // lets #main-content take the remaining height
   // after `#bottom-drawer` takes its own height.
 }
@@ -266,7 +312,7 @@ const cssVars = computed(() => {
   // This is the containing block for the absolutely positioned WWT host and overlay.
   position: relative;
   display: block; // don't need to set width. block elements stretch to fill their container by default.
-  
+
   // Its height is determined by the flex layout in `#app`.
   flex: 1 0 auto;
   overflow: hidden;
@@ -313,7 +359,7 @@ The overlay itself is out of flow, but its children can use normal flex layout i
 you can also do position: relative, height: 100%. (and remove the inset: 0)
 - absolute + inset: 0 says “this is a layer pinned to the container”
 - relative + height: 100% says “this is a normal child trying to be as tall as its parent”
-we use the absolute variant to stay more independent of the which can interact weirdly with WWT's resizing. 
+we use the absolute variant to stay more independent of the which can interact weirdly with WWT's resizing.
 and the relative still requires the parent to have a definite size.
 and remember, position:absolute is still a positioned parent, so children can be absolute against it
 */
@@ -325,7 +371,7 @@ and remember, position:absolute is still a positioned parent, so children can be
   right: 0;
   padding: 1rem;
   pointer-events: none;
-  
+
   display: flex;
   flex-direction: column;
   justify-content: space-between; // pushes top and bottom content apart
@@ -411,12 +457,12 @@ and remember, position:absolute is still a positioned parent, so children can be
   #body-logos {
     align-self: flex-end;
   }
-  
+
   #icons-container {
     display: flex;
     justify-content: flex-end;
   }
-  
+
   .toolkit-credit {
     font-size: 0.65rem;
     color: rgba(255,255,255,0.55);
@@ -451,7 +497,7 @@ and remember, position:absolute is still a positioned parent, so children can be
   #wwt-overlay {
     border: 3px solid aqua;
   }
-  
+
 }
 
 #bottom-drawer {
