@@ -42,10 +42,25 @@
           </div>
           <div id="right-buttons">
             <button
-              class="copy-url-btn"
+              class="artemis-btn"
               @click="copyViewUrl"
+              @keyup.enter="copyViewUrl"
             >
               Copy view URL
+            </button>
+            <button
+              class="artemis-btn"
+              @click="trackingCenter = SolarSystemObjects.moon"
+              @keyup.enter="trackingCenter = SolarSystemObjects.moon"
+            >
+              Track Moon
+            </button>
+            <button
+              class="artemis-btn"
+              @click="trackingCenter = SolarSystemObjects.earth"
+              @keyup.enter="trackingCenter = SolarSystemObjects.earth"
+            >
+              Track Earh
             </button>
           </div>
         </div>
@@ -93,12 +108,12 @@
 
 <script setup lang="ts">
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, computed, onMounted, watch } from "vue";
 import { GotoRADecZoomParams, engineStore } from "@wwtelescope/engine-pinia";
 import { BackgroundImageset, supportsTouchscreen, useWWTKeyboardControls, CreditLogos, IconButton } from "@cosmicds/vue-toolkit";
 import { useDisplay } from "vuetify";
 import { D2R, H2R  } from "@wwtelescope/astro";
-import { AstroCalc, Color } from "@wwtelescope/engine";
+import { AstroCalc, Color, SpreadSheetLayer } from "@wwtelescope/engine";
 import { CoordinatesType, MarkerScales, ReferenceFrames, SolarSystemObjects } from "@wwtelescope/engine-types";
 import ArtemisTimeControl from "./components/ArtemisTimeControl.vue";
 
@@ -199,6 +214,77 @@ import { AltUnits } from "@wwtelescope/engine-types";
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 let copyViewUrl: () => Promise<void> = async () => {};
 import { loadHorizonsVectorsForWwt } from "./horizons";
+const layers = ref<SpreadSheetLayer[]>([]);
+
+const trackingCenter = ref<SolarSystemObjects>(SolarSystemObjects.moon);
+
+async function createArtemisLayers(trackedObject: SolarSystemObjects) {
+  
+  const vec = await loadHorizonsVectorsForWwt('./horizons_results-earth.txt', SolarSystemObjects.earth, trackedObject);
+  const items = vec.split("\r\n");
+  const header = items.shift();
+  let bounds: [number, number][] = [];
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const N = 10;
+  const centerStart = 1300;
+  const centerEnd = 1500;
+  const end = 2600;
+  for (let i = centerStart; i < centerEnd; i += N) {
+    bounds.push([i, i + N]);
+  }
+  bounds = [[0, centerStart], ...bounds, [centerEnd, end]];
+  bounds.forEach((bds) => {
+    const data = items.slice(...bds).join("\r\n");
+    store.createTableLayer({
+      name: 'Artemis',
+      referenceFrame: 'Sky',
+      dataCsv: `${header}\r\n${data}`,
+    }).then(layer => {
+      layer.set_xAxisColumn(2);
+      layer.set_yAxisColumn(3);
+      layer.set_zAxisColumn(4);
+      layer.set_coordinatesType(CoordinatesType.rectangular);
+      layer.set_astronomical(true);
+      layer.set_cartesianScale(AltUnits.astronomicalUnits);
+      layer.set_altUnit(AltUnits.astronomicalUnits);
+      layer.set_markerScale(MarkerScales.screen);
+      layer.set_scaleFactor(10);
+      layer.set_color(Color.fromHex("#ffffff"));
+      layer.set_showFarSide(true);
+      layer.set_opacity(25);
+    });
+  });
+
+    
+  store.createTableLayer({
+    name: 'Artemis Time',
+    referenceFrame: 'Sky',
+    dataCsv: vec,
+  }).then(layer => {
+    layer.set_xAxisColumn(2);
+    layer.set_yAxisColumn(3);
+    layer.set_zAxisColumn(4);
+    layer.set_coordinatesType(CoordinatesType.rectangular);
+    layer.set_astronomical(true);
+    layer.set_cartesianScale(AltUnits.astronomicalUnits);
+    layer.set_altUnit(AltUnits.astronomicalUnits);
+    layer.set_markerScale(MarkerScales.screen);
+    layer.set_scaleFactor(20);
+    layer.set_color(Color.fromHex("#ff0000"));
+    layer.set_showFarSide(true);
+    layer.set_opacity(100);
+    layer.set_startDateColumn(1);
+    layer.set_endDateColumn(5);
+    layer.set_decay(5 / (60 * 24));
+    layer.set_timeSeries(true);
+
+  });
+}
+
+function removeArtemisLayers() {
+  layers.value.forEach(layer => store.deleteLayer(layer.id.toString()));
+}
+
 onMounted(() => {
   store.waitForReady().then(async () => {
     WWTControl.singleton.set_zoomMax(ZOOM_MAX);
@@ -212,66 +298,6 @@ onMounted(() => {
     store.applySetting(["solarSystemCosmos", true]);
     store.applySetting(["solarSystemMilkyWay", true]);
     store.setTrackedObject(SolarSystemObjects.moon);
-
-    const vec = await loadHorizonsVectorsForWwt('./horizons_results-moon.txt');
-    const items = vec.split("\r\n");
-    const header = items.shift();
-    let bounds: [number, number][] = [];
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const N = 10;
-    const centerStart = 1300;
-    const centerEnd = 1500;
-    const end = 2600;
-    for (let i = centerStart; i < centerEnd; i += N) {
-      bounds.push([i, i + N]);
-    }
-    bounds = [[0, centerStart], ...bounds, [centerEnd, end]];
-    bounds.forEach((bds) => {
-      const data = items.slice(...bds).join("\r\n");
-      store.createTableLayer({
-        name: 'Artemis',
-        referenceFrame: 'Sky',
-        dataCsv: `${header}\r\n${data}`,
-      }).then(layer => {
-        layer.set_xAxisColumn(2);
-        layer.set_yAxisColumn(3);
-        layer.set_zAxisColumn(4);
-        layer.set_coordinatesType(CoordinatesType.rectangular);
-        layer.set_astronomical(true);
-        layer.set_cartesianScale(AltUnits.astronomicalUnits);
-        layer.set_altUnit(AltUnits.astronomicalUnits);
-        layer.set_markerScale(MarkerScales.screen);
-        layer.set_scaleFactor(10);
-        layer.set_color(Color.fromHex("#ffffff"));
-        layer.set_showFarSide(true);
-        layer.set_opacity(25);
-      });
-    });
-
-    
-    store.createTableLayer({
-      name: 'Artemis Time',
-      referenceFrame: 'Sky',
-      dataCsv: vec,
-    }).then(layer => {
-      layer.set_xAxisColumn(2);
-      layer.set_yAxisColumn(3);
-      layer.set_zAxisColumn(4);
-      layer.set_coordinatesType(CoordinatesType.rectangular);
-      layer.set_astronomical(true);
-      layer.set_cartesianScale(AltUnits.astronomicalUnits);
-      layer.set_altUnit(AltUnits.astronomicalUnits);
-      layer.set_markerScale(MarkerScales.screen);
-      layer.set_scaleFactor(20);
-      layer.set_color(Color.fromHex("#ff0000"));
-      layer.set_showFarSide(true);
-      layer.set_opacity(100);
-      layer.set_startDateColumn(1);
-      layer.set_endDateColumn(5);
-      layer.set_decay(5 / (60 * 24));
-      layer.set_timeSeries(true);
-
-    });
 
     WWTControl.singleton.shallowLayerTest = function(layer) {
       const table = layer.get__table();
@@ -287,10 +313,21 @@ onMounted(() => {
       return depth <= moonDepth;
     }.bind(this);
 
+
+    store.setTrackedObject(trackingCenter.value);
+    createArtemisLayers(trackingCenter.value);
+    
+
     ({ copyViewUrl } = useCameraUrl(INITIAL_VIEW));
     positionSet.value = true;
     layersLoaded.value = true;
   });
+});
+
+watch(trackingCenter, (trackedObject) => {
+  removeArtemisLayers();
+  store.setTrackedObject(trackedObject);
+  createArtemisLayers(trackedObject);
 });
 
 const ready = computed(() => layersLoaded.value && positionSet.value);
@@ -451,7 +488,7 @@ and remember, position:absolute is still a positioned parent, so children can be
   align-items: flex-end;
   height: auto;
 
-  .copy-url-btn {
+  .artemis-btn {
     pointer-events: auto;
     background: rgba(255, 255, 255, 0.12);
     border: 1px solid rgba(255, 255, 255, 0.45);
