@@ -33,6 +33,9 @@ jobs:
       - name: Yarn install
         run: yarn install --immutable
 
+      - name: Patch WWT engine
+        run: ./patch.sh
+
       - name: Lint
         run: yarn lint
 
