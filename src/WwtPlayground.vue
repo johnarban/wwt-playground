@@ -253,31 +253,32 @@ async function createArtemisLayers(trackedObject: SolarSystemObjects) {
       layer.set_showFarSide(true);
       layer.set_opacity(25);
     });
-  });
+  
 
     
-  store.createTableLayer({
-    name: 'Artemis Time',
-    referenceFrame: 'Sky',
-    dataCsv: vec,
-  }).then(layer => {
-    layer.set_xAxisColumn(2);
-    layer.set_yAxisColumn(3);
-    layer.set_zAxisColumn(4);
-    layer.set_coordinatesType(CoordinatesType.rectangular);
-    layer.set_astronomical(true);
-    layer.set_cartesianScale(AltUnits.astronomicalUnits);
-    layer.set_altUnit(AltUnits.astronomicalUnits);
-    layer.set_markerScale(MarkerScales.screen);
-    layer.set_scaleFactor(20);
-    layer.set_color(Color.fromHex("#ff0000"));
-    layer.set_showFarSide(true);
-    layer.set_opacity(100);
-    layer.set_startDateColumn(1);
-    layer.set_endDateColumn(5);
-    layer.set_decay(5 / (60 * 24));
-    layer.set_timeSeries(true);
+    store.createTableLayer({
+      name: 'Artemis Time',
+      referenceFrame: 'Sky',
+      dataCsv: `${header}\r\n${data}`,
+    }).then(layer => {
+      layer.set_xAxisColumn(2);
+      layer.set_yAxisColumn(3);
+      layer.set_zAxisColumn(4);
+      layer.set_coordinatesType(CoordinatesType.rectangular);
+      layer.set_astronomical(true);
+      layer.set_cartesianScale(AltUnits.astronomicalUnits);
+      layer.set_altUnit(AltUnits.astronomicalUnits);
+      layer.set_markerScale(MarkerScales.screen);
+      layer.set_scaleFactor(20);
+      layer.set_color(Color.fromHex("#ff0000"));
+      layer.set_showFarSide(true);
+      layer.set_opacity(100);
+      layer.set_startDateColumn(1);
+      layer.set_endDateColumn(5);
+      layer.set_decay(5 / (60 * 24));
+      layer.set_timeSeries(true);
 
+    });
   });
   
   const showMoonRefLayer = false;
