@@ -103,8 +103,8 @@ import { CoordinatesType, MarkerScales, ReferenceFrames, SolarSystemObjects } fr
 import ArtemisTimeControl from "./components/ArtemisTimeControl.vue";
 
 import { useCameraUrl } from "./composables/useCameraUrl";
-import { moveViewCamera, getDepth, getCoordinatesForScreenPoint,getScreenPointForCoordinates, transformPickPointToWorldSpace, transformWorldPointToPickSpace, renderOneFrame, makeFrustum, type CameraView } from "./wwt-hacks";
-import { WWTControl } from "@wwtelescope/engine";
+import { moveViewCamera, layerManagerDraw, getDepth, getCoordinatesForScreenPoint,getScreenPointForCoordinates, transformPickPointToWorldSpace, transformWorldPointToPickSpace, renderOneFrame, makeFrustum, type CameraView } from "./wwt-hacks";
+import { LayerManager, WWTControl } from "@wwtelescope/engine";
 
 const ZOOM_MIN   = 0.00006;
 const ZOOM_MAX   = 240;
@@ -192,6 +192,7 @@ function doWWTHacks() {
   WWTControl.singleton.renderOneFrame = renderOneFrame.bind(WWTControl.singleton);
   WWTControl.singleton.getDepth = getDepth.bind(WWTControl.singleton);
   WWTControl.singleton.renderContext.makeFrustum = makeFrustum.bind(WWTControl.singleton.renderContext);
+  LayerManager._draw = layerManagerDraw;
 }
 
 import { AltUnits } from "@wwtelescope/engine-types";
@@ -208,52 +209,64 @@ onMounted(() => {
 
     store.setBackgroundImageByName("Solar System");
     store.setTrackedObject(SolarSystemObjects.moon);
+
     const vec = await loadHorizonsVectorsForWwt('./horizons_results-moon.txt');
-    store.createTableLayer({
-      name: 'Artemis',
-      referenceFrame: 'Sky',
-      dataCsv: vec,
-    }).then(layer => {
-      layer.set_xAxisColumn(2);
-      layer.set_yAxisColumn(3);
-      layer.set_zAxisColumn(4);
-      layer.set_coordinatesType(CoordinatesType.rectangular);
-      layer.set_astronomical(true);
-      layer.set_cartesianScale(AltUnits.astronomicalUnits);
-      layer.set_altUnit(AltUnits.astronomicalUnits);
-      layer.set_markerScale(MarkerScales.screen);
-      layer.set_scaleFactor(10);
-      layer.set_color(Color.fromHex("#ffffff"));
-      layer.set_showFarSide(true);
-      layer.set_opacity(50);
-      // set_startDateColumn, set_delay. want endDateCol to be the next point
-      store.applyTableLayerSettings({
-        id: layer.id.toString(),
-        settings: [
-          // ["scaleFactor", 0.1],
+    const items = vec.split("\r\n");
+    const header = items.shift();
+    let bounds: [number, number][] = [];
+    const N = 10;
+    const centerStart = 1300;
+    const centerEnd = 1500;
+    const end = 2600;
+    for (let i = centerStart; i < centerEnd; i += N) {
+      bounds.push([i, i + N]);
+    }
+    bounds = [[0, centerStart], ...bounds, [centerEnd, end]];
+    bounds.forEach((bds) => {
+      const data = items.slice(...bds).join("\r\n");
+      store.createTableLayer({
+        name: 'Artemis',
+        referenceFrame: 'Sky',
+        dataCsv: `${header}\r\n${data}`,
+      }).then(layer => {
+        layer.set_xAxisColumn(2);
+        layer.set_yAxisColumn(3);
+        layer.set_zAxisColumn(4);
+        layer.set_coordinatesType(CoordinatesType.rectangular);
+        layer.set_astronomical(true);
+        layer.set_cartesianScale(AltUnits.astronomicalUnits);
+        layer.set_altUnit(AltUnits.astronomicalUnits);
+        layer.set_markerScale(MarkerScales.screen);
+        layer.set_scaleFactor(10);
+        layer.set_color(Color.fromHex("#ffffff"));
+        layer.set_showFarSide(true);
+        layer.set_opacity(50);
+        // set_startDateColumn, set_delay. want endDateCol to be the next point
+        store.applyTableLayerSettings({
+          id: layer.id.toString(),
+          settings: [
+            // ["scaleFactor", 0.1],
 
-        ]
+          ]
+        });
+
+        console.log(layer);
       });
-
-      console.log(layer);
-
-      // double underscore is intentional
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      const table = layer.get__table(); const count = table.rows.length;
-      const center = Math.floor(count / 2);
-
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      const pt = table.rows[center];
-      const x = Number(pt[layer.get_xAxisColumn()]);
-      const y = Number(pt[layer.get_yAxisColumn()]);
-      const z = Number(pt[layer.get_zAxisColumn()]);
-
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      WWTControl.singleton.testPoint = [x, y, z];
     });
+
+    WWTControl.singleton.shallowLayerTest = function(layer) {
+      const table = layer.get__table();
+      const rows = table.rows;
+      const count = rows.length;
+      const center = Math.floor(count / 2);
+      const centerRow = rows[center];
+      const x = Number(centerRow[layer.get_xAxisColumn()]);
+      const y = Number(centerRow[layer.get_yAxisColumn()]);
+      const z = Number(centerRow[layer.get_zAxisColumn()]);
+      const depth = WWTControl.singleton.getDepth(x, y, z);
+      const moonDepth = WWTControl.singleton.getDepth(0, 0, 0);
+      return depth <= moonDepth;
+    }.bind(this);
 
     ({ copyViewUrl } = useCameraUrl(INITIAL_VIEW));
     positionSet.value = true;

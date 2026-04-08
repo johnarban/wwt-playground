@@ -2,13 +2,16 @@ import {
   Annotation,
   Constellations,
   Grids,
+  ImageSetLayer,
   LayerManager,
+  LayerMap,
   Matrix3d,
   Planets,
   Planets3d,
   RenderTriangle,
   Settings,
   SpaceTimeController,
+  SpreadSheetLayer,
   Tile,
   TileCache,
   TourPlayer,
@@ -251,14 +254,24 @@ export function getScreenPointForCoordinates(x, y, z=0) {
     return result;
 }
 
+// export function getDepth(x, y, z) {
+//   const pt = this.getScreenPointForCoordinates(x, y, z);
+//   const near = -1;
+//   const far = 1;
+//   const nearPt = this.transformPickPointToWorldSpace(pt, this.renderContext.width, this.renderContext.height, true, near);
+//   const farPt = this.transformPickPointToWorldSpace(pt, this.renderContext.width, this.renderContext.height, true, far);
+//   // In principle, should give the same value for y and z
+//   return (x - nearPt.x) / (farPt.x - nearPt.x);
+// }
+
 export function getDepth(x, y, z) {
-  const pt = this.getScreenPointForCoordinates(x, y, z);
-  const near = -1;
-  const far = 1;
-  const nearPt = this.transformPickPointToWorldSpace(pt, this.renderContext.width, this.renderContext.height, true, near);
-  const farPt = this.transformPickPointToWorldSpace(pt, this.renderContext.width, this.renderContext.height, true, far);
-  // In principle, should give the same value for y and z
-  return (x - nearPt.x) / (farPt.x - nearPt.x);
+    const worldPoint = Vector3d.create(x, y, z);
+    var m = Matrix3d.multiplyMatrix(this.renderContext.get_world(), this.renderContext.get_view());
+    m = Matrix3d.multiplyMatrix(m, this.renderContext.get_projection());
+
+    var vz = (worldPoint.x * m.get_m13() + worldPoint.y * m.get_m23() + worldPoint.z * m.get_m33() + m.get_m43());
+
+    return vz;
 }
 
 export function renderOneFrame() {
@@ -400,17 +413,9 @@ export function renderOneFrame() {
         this.renderContext.set_world(matLocal);
         this.renderContext.makeFrustum();
 
-        let drawLayersFirst = true;
-        if (this.testPoint) {
-          const testDepth = this.getDepth(...this.testPoint);
-          const moonDepth = this.getDepth(0, 0, 0);  // The view is centered on the moon
-          drawLayersFirst = testDepth < moonDepth;
-        }
-        if (drawLayersFirst) {
-          LayerManager._draw(this.renderContext, 1, true, 'Sky', true, false);
-          this.renderContext.set_world(matOld);
-          this.renderContext.makeFrustum();
-        }
+        LayerManager._draw(this.renderContext, 1, true, 'Sky', true, false, (layer) => this.shallowLayerTest ? !this.shallowLayerTest(layer) : false);
+        this.renderContext.set_world(matOld);
+        this.renderContext.makeFrustum();
 
         if (this.renderContext.get_solarSystemCameraDistance() < 15000) {
             this.renderContext.setupMatricesSolarSystem(false);
@@ -422,8 +427,8 @@ export function renderOneFrame() {
             }
         }
 
-        if (!drawLayersFirst) {
-          LayerManager._draw(this.renderContext, 1, true, 'Sky', true, false);
+        if (this.shallowLayerTest) {
+          LayerManager._draw(this.renderContext, 1, true, 'Sky', true, false, (layer) => this.shallowLayerTest(layer));
           this.renderContext.set_world(matOld);
           this.renderContext.makeFrustum();
         }
@@ -649,3 +654,62 @@ export function makeFrustum() {
 //     }
 //     return data;
 // }
+
+export function layerManagerDraw(renderContext, opacity, astronomical, referenceFrame, nested, cosmos, filter=null) {
+    if (!(referenceFrame in LayerManager.get_allMaps())) {
+        return;
+    }
+    var thisMap = LayerManager.get_allMaps()[referenceFrame];
+    if (!thisMap.enabled || (thisMap.childMaps && !thisMap.layers.length && !(thisMap.frame.showAsPoint || thisMap.frame.showOrbitPath))) {
+        return;
+    }
+    var matOld = renderContext.get_world();
+    var matOldNonRotating = renderContext.get_worldBaseNonRotating();
+    var oldNominalRadius = renderContext.get_nominalRadius();
+    if ((thisMap.frame.reference === 18 || thisMap.frame.reference === 18) === 1) {
+        thisMap.computeFrame(renderContext);
+        if (thisMap.frame.referenceFrameType !== 1 && thisMap.frame.referenceFrameType !== 2) {
+            renderContext.set_world(Matrix3d.multiplyMatrix(thisMap.frame.worldMatrix, renderContext.get_world()));
+        } else {
+            renderContext.set_world(Matrix3d.multiplyMatrix(thisMap.frame.worldMatrix, renderContext.get_worldBaseNonRotating()));
+        }
+        renderContext.set_nominalRadius(thisMap.frame.meanRadius);
+    }
+    if (thisMap.frame.showAsPoint) {
+        // todo Draw point planet...
+        // Planets.DrawPointPlanet(renderContext.Device, new Vector3d(0, 0, 0), (float).2, thisMap.Frame.RepresentativeColor, true);
+    }
+    for (var pass = 0; pass < 2; pass++) {
+        for (const layer of LayerManager.get_allMaps()[referenceFrame].layers) {
+            if ((!pass && (layer instanceof ImageSetLayer)) || (pass === 1 && !(layer instanceof ImageSetLayer))) {
+                var skipLayer = false;
+                if (!pass) {
+                    // Skip default image set layer so that it's not drawn twice
+                    skipLayer = !astronomical && (layer).get_overrideDefaultLayer();
+                }
+                if (layer.enabled && !skipLayer) {
+                    var layerStart = SpaceTimeController.utcToJulian(layer.get_startTime());
+                    var layerEnd = SpaceTimeController.utcToJulian(layer.get_endTime());
+                    var fadeIn = SpaceTimeController.utcToJulian(layer.get_startTime()) - ((layer.get_fadeType() === 1 || layer.get_fadeType() === 3) ? (layer.get_fadeSpan() / 864000000) : 0);
+                    var fadeOut = SpaceTimeController.utcToJulian(layer.get_endTime()) + ((layer.get_fadeType() === 2 || layer.get_fadeType() === 3) ? (layer.get_fadeSpan() / 864000000) : 0);
+                    if (SpaceTimeController.get_jNow() > fadeIn && SpaceTimeController.get_jNow() < fadeOut) {
+                        var fadeOpacity = 1;
+                        if (SpaceTimeController.get_jNow() < layerStart) {
+                            fadeOpacity = ((SpaceTimeController.get_jNow() - fadeIn) / (layer.get_fadeSpan() / 864000000));
+                        }
+                        if (SpaceTimeController.get_jNow() > layerEnd) {
+                            fadeOpacity = ((fadeOut - SpaceTimeController.get_jNow()) / (layer.get_fadeSpan() / 864000000));
+                        }
+                        if (filter && filter(layer)) {
+                            layer.set_astronomical(astronomical);
+                            layer.draw(renderContext, opacity * fadeOpacity, cosmos);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    renderContext.set_nominalRadius(oldNominalRadius);
+    renderContext.set_world(matOld);
+    renderContext.set_worldBaseNonRotating(matOldNonRotating);
+};
