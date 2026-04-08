@@ -1,6 +1,10 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
+/* eslint-disable  */
 import {
   Annotation,
   Constellations,
+  // @ts-expect-error Grid does exist
   Grids,
   ImageSetLayer,
   LayerManager,
@@ -15,6 +19,7 @@ import {
   Tile,
   TileCache,
   TourPlayer,
+  // @ts-expect-error Vector2d does exist
   Vector2d,
   Vector3d,
   WWTControl,
@@ -134,10 +139,7 @@ export function removeFromWWTRenderLoop(cb: () => void) {
   addedToFrame.splice(idx, 1);
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck
 
-/* eslint-disable */
 
 import { Coordinates } from "@wwtelescope/engine";
 

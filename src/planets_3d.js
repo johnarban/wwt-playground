@@ -1,3 +1,4 @@
+/* eslint-disable */
 // Copyright 2023 the .NET Foundation
 // Licensed under the MIT License
 

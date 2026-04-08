@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-extraneous-class */
 /* eslint-disable @typescript-eslint/naming-convention */
 
 import "@wwtelescope/engine"; // all types are available to typescript here, but i import them specifically below for clarity
-import type { Color, Vector3d } from "@wwtelescope/engine";
+import type { Color } from "@wwtelescope/engine";
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
 
 
@@ -39,6 +40,11 @@ declare module "@wwtelescope/engine" {
   interface Coordinates {
     raDecTo3d(ra: number, dec: number): Vector3d;
     horizonToEquitorial(altAz: Coordinates, location: Coordinates, utc: Date): Coordinates;
+  }
+  
+  namespace Vector3d {
+    function addVectors(left: Vector3d, right: Vector3d): Vector3d;
+    function negate(left: Vector3d, right: Vector3d): Vector3d;
   }
 
 
@@ -83,7 +89,6 @@ declare module "@wwtelescope/engine" {
     static _planetScales: number[];
 
     // Technically this is a list of AstroRaDec objects, but this is a good enough definition
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     static _planetLocations: { RA: number; dec: number }[];
 
     static drawPlanets(renderContext: RenderContext, opacity: number): void;
@@ -93,6 +98,11 @@ declare module "@wwtelescope/engine" {
 
   export class Planets3d {
     static drawPlanets3D(renderContext: renderContext, opacity: number, centerPoint: Vector3d);
+  }
+
+  
+  namespace Planets {
+    function getPlanet3dLocationJD(target: SolarSystemObjects, jNow: number): Vector3d;
   }
 
 };
