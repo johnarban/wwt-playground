@@ -202,11 +202,16 @@ function goHome() {
 function doWWTHacks() {
   WWTControl.singleton.getScreenPointForCoordinates = getScreenPointForCoordinates.bind(WWTControl.singleton);
   WWTControl.singleton.getCoordinatesForScreenPoint = getCoordinatesForScreenPoint.bind(WWTControl.singleton);
+  // @ts-expect-error this does exist
   WWTControl.singleton.transformWorldPointToPickSpace = transformWorldPointToPickSpace.bind(WWTControl.singleton);
+  // @ts-expect-error this does exist
   WWTControl.singleton.transformPickPointToWorldSpace = transformPickPointToWorldSpace.bind(WWTControl.singleton);
   WWTControl.singleton.renderOneFrame = renderOneFrame.bind(WWTControl.singleton);
+  // @ts-expect-error this does exist
   WWTControl.singleton.getDepth = getDepth.bind(WWTControl.singleton);
+  // @ts-expect-error this does exist
   WWTControl.singleton.renderContext.makeFrustum = makeFrustum.bind(WWTControl.singleton.renderContext);
+  // @ts-expect-error this does exist
   LayerManager._draw = layerManagerDraw;
 }
 
@@ -326,6 +331,7 @@ onMounted(() => {
     store.applySetting(["solarSystemMilkyWay", true]);
     store.setTrackedObject(SolarSystemObjects.moon);
 
+    // @ts-expect-error this does exist
     WWTControl.singleton.shallowLayerTest = function(layer) {
       const table = layer.get__table();
       const rows = table.rows;
@@ -335,7 +341,9 @@ onMounted(() => {
       const x = Number(centerRow[layer.get_xAxisColumn()]);
       const y = Number(centerRow[layer.get_yAxisColumn()]);
       const z = Number(centerRow[layer.get_zAxisColumn()]);
+      // @ts-expect-error this does exist
       const depth = WWTControl.singleton.getDepth(x, y, z);
+      // @ts-expect-error this does exist
       const moonDepth = WWTControl.singleton.getDepth(0, 0, 0);
       return depth <= moonDepth;
     }.bind(this);

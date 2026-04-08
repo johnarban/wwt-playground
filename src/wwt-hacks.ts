@@ -1,8 +1,10 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
 /* eslint-disable  */
-/* @ts-nocheck */
 import {
   Annotation,
   Constellations,
+  // @ts-expect-error Grid does exist
   Grids,
   ImageSetLayer,
   LayerManager,
@@ -17,6 +19,7 @@ import {
   Tile,
   TileCache,
   TourPlayer,
+  // @ts-expect-error Vector2d does exist
   Vector2d,
   Vector3d,
   WWTControl,
