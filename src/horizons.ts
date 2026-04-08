@@ -44,7 +44,7 @@ export function parseHorizonsVectorsForWwt(rawText: string, horizonsCenter = Sol
     // transform date to utc
     values[1] = `${ut.toISOString()}`;
     
-    values.push(`${(new Date(ut.getTime() + FIVE_MINUTES).toISOString())}`);
+    values.push(`${(new Date(ut.getTime() + FIVE_MINUTES / 2.0).toISOString())}`);
     
     // if they are not the same apple the correct frame shift
     if (horizonsCenter !== wwtTrackingObject) {
