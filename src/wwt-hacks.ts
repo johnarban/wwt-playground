@@ -1,3 +1,5 @@
+/* eslint-disable  */
+/* @ts-nocheck */
 import {
   Annotation,
   Constellations,
@@ -134,10 +136,7 @@ export function removeFromWWTRenderLoop(cb: () => void) {
   addedToFrame.splice(idx, 1);
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck
 
-/* eslint-disable */
 
 import { Coordinates } from "@wwtelescope/engine";
 
