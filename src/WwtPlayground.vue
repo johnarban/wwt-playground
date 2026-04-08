@@ -279,6 +279,32 @@ async function createArtemisLayers(trackedObject: SolarSystemObjects) {
     layer.set_timeSeries(true);
 
   });
+  
+  const showMoonRefLayer = false;
+  if (showMoonRefLayer) {
+    const vecMoon = await loadHorizonsVectorsForWwt('./horizons_results-moon.txt', SolarSystemObjects.moon, trackedObject);
+    store.createTableLayer({
+      name: 'Artemis Moon',
+      referenceFrame: 'Sky',
+      dataCsv: vecMoon,
+    }).then(layer => {
+      layer.set_xAxisColumn(2);
+      layer.set_yAxisColumn(3);
+      layer.set_zAxisColumn(4);
+      layer.set_coordinatesType(CoordinatesType.rectangular);
+      layer.set_astronomical(true);
+      layer.set_cartesianScale(AltUnits.astronomicalUnits);
+      layer.set_altUnit(AltUnits.astronomicalUnits);
+      layer.set_markerScale(MarkerScales.screen);
+      layer.set_scaleFactor(5);
+      layer.set_color(Color.fromHex("#00ffff"));
+      layer.set_showFarSide(true);
+      layer.set_opacity(25);
+      layers.value.push(layer);
+    });
+  
+  }
+  
 }
 
 function removeArtemisLayers() {
