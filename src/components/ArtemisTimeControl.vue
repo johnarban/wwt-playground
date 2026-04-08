@@ -27,7 +27,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const MISSION_START = new Date("2026-04-02T02:30:00Z");
+const MISSION_START = new Date("2026-04-02T01:58:32Z");
 const MISSION_END   = new Date("2026-04-10T23:54:30Z");
 const STEP_MS       = 5 * 60 * 1000;
 
