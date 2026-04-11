@@ -95,3 +95,23 @@ export function setupHorizonsSpreadSheetLayer(layer: SpreadSheetLayer) {
   layer.set_showFarSide(true);
   return layer;
 }
+
+/**
+ * get the start and end time of the horizons data
+ * horizonsCsvString is the output of parseHorizonsVectorsForWwt
+ */
+export function getHorizonsStartEndTimes(horizonsCsvString: string): { start: Date, end: Date } {
+  let lines = horizonsCsvString.split(/\r?\n/);
+  if (!lines[0].startsWith("jdtdb")) {
+    lines = parseHorizonsVectorsForWwt(horizonsCsvString).split(/\r?\n/);
+  }
+
+  const firstLine = lines[1];
+  const lastLine = lines[lines.length - 1];
+  
+  // the strings are ISO strings with 'Z' at the end, so this will be parsed as UTC time
+  const startDate = new Date(firstLine.split(",")[1]); 
+  const endDate = new Date(lastLine.split(",")[1]);
+
+  return { start: startDate, end: endDate };
+}

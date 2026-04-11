@@ -129,10 +129,16 @@ import {
 import { LayerManager, WWTControl } from "@wwtelescope/engine";
 
 import { AltUnits } from "@wwtelescope/engine-types";
-import { parseHorizonsVectorsForWwt, setupHorizonsSpreadSheetLayer } from "./horizons";
+import { useStretchedZoom } from "./composables/useStretchedZoom";
+
+
+import { 
+  parseHorizonsVectorsForWwt, 
+  setupHorizonsSpreadSheetLayer , 
+  getHorizonsStartEndTimes
+} from "./horizons";
 import horizonsEarthData from "@/assets/horizons_results-earth.txt?raw";
 import horizonsMoonData from "@/assets/horizons_results-moon.txt?raw";
-import { useStretchedZoom } from "./composables/useStretchedZoom";
 
 const { zoomSliderValue, onZoomSlider, ZOOM_MAX } = useStretchedZoom();
 
@@ -142,7 +148,6 @@ type SheetType = "text" | "video";
 type CameraParams = Omit<GotoRADecZoomParams, "instant">;
 export interface WwtPlaygroundProps {
   wwtNamespace?: string;
-  initialCameraParams?: CameraParams;
 }
 
 const store = engineStore();
@@ -154,14 +159,6 @@ const { smAndDown } = useDisplay();
 
 const props = withDefaults(defineProps<WwtPlaygroundProps>(), {
   wwtNamespace: "wwt-playground",
-  initialCameraParams: () => {
-    const galacticCenter = AstroCalc.galacticToJ2000(0, 0);
-    return {
-      raRad: galacticCenter.RA * H2R ,
-      decRad: galacticCenter.dec * D2R,
-      zoomDeg: 360
-    };
-  }
 });
 
 const splash = new URLSearchParams(window.location.search).get("splash")?.toLowerCase() !== "false";
@@ -172,15 +169,41 @@ const layersLoaded = ref(false);
 const positionSet = ref(false);
 const accentColor = ref("#ffffff");
 const buttonColor = ref("#ffffff");
+
+
+
+function clampTime(time: Date, min: Date, max: Date): Date {
+  const clamped = Math.min(
+    Math.max(time.getTime(), min.getTime()),
+    max.getTime()   
+  );
+  return new Date(clamped);
+}
+
+const { start: MISSION_START, end: MISSION_END } = getHorizonsStartEndTimes(horizonsEarthData);
+  
+const now = new Date();
+const HOME_TIME = clampTime(now, MISSION_START, MISSION_END);
+const urlTime = new URLSearchParams(window.location.search).get("time");
+const INITIAL_TIME = ref(urlTime ? new Date(+urlTime) : HOME_TIME);
+
 const INITIAL_VIEW: CameraView = {
-  lng: 169.906038,
-  lat: 1.323000,
-  zoomDeg: 0.000163,
+  lng: 214.660687,
+  lat: 13.418963,
+  zoomDeg: 0.000511,
   rotationDeg: 0,
   angleDeg: 0,
-  time: (new Date()).getTime(),
+  time: INITIAL_TIME.value.getTime()
 };
 
+const EARTH_VIEW: CameraView = {
+  lng: 316.555988,
+  lat: 74.277000,
+  zoomDeg: 0.017202,
+  rotationDeg: 0,
+  angleDeg: 0,
+  time: INITIAL_TIME.value.getTime()
+};
 
 
 function goHome() {
@@ -327,9 +350,12 @@ onMounted(() => {
   });
 });
 
-watch(trackingCenter, (trackedObject) => {
+watch([trackingCenter, showTrajectory, showMoonRefLayer], ([trackedObject, _, __ ]) => {
   removeArtemisLayers();
   store.setTrackedObject(trackedObject);
+  if (trackedObject === SolarSystemObjects.earth) {
+    moveViewCamera(EARTH_VIEW, false);
+  }
   createArtemisLayers(trackedObject);
 });
 
