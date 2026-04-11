@@ -71,7 +71,14 @@
         <!-- This block contains the elements (e.g. the project icons) displayed along the bottom of the screen -->
 
         <div id="bottom-content">
-          <ArtemisTimeControl :can-create="positionSet" />
+          <ArtemisTimeControl
+            v-model:time="currentTime"
+            :can-create="positionSet"
+            :initial-time="INITIAL_TIME"
+            :start-time="MISSION_START"
+            :end-time="MISSION_END"
+            :step="horizonTimeDelta"
+          />
           <div
             v-if="!smallSize"
             id="body-logos"
@@ -180,7 +187,7 @@ function clampTime(time: Date, min: Date, max: Date): Date {
   return new Date(clamped);
 }
 
-const { start: MISSION_START, end: MISSION_END } = getHorizonsStartEndTimes(horizonsEarthData);
+const { start: MISSION_START, end: MISSION_END, deltaT: horizonTimeDelta } = getHorizonsStartEndTimes(horizonsEarthData);
   
 const now = new Date();
 const HOME_TIME = clampTime(now, MISSION_START, MISSION_END);
@@ -205,8 +212,11 @@ const EARTH_VIEW: CameraView = {
   time: INITIAL_TIME.value.getTime()
 };
 
+const currentTime = ref(INITIAL_TIME.value);
 
 function goHome() {
+  currentTime.value =  INITIAL_TIME.value;
+  trackingCenter.value = SolarSystemObjects.moon;
   moveViewCamera(INITIAL_VIEW, false);
 }
 
