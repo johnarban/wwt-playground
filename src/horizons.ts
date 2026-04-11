@@ -1,5 +1,19 @@
-import { SpaceTimeController, Planets, Vector3d } from "@wwtelescope/engine";
-import { SolarSystemObjects } from "@wwtelescope/engine-types";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import {
+  SpaceTimeController, 
+  Planets, 
+  Vector3d, 
+  SpreadSheetLayer, 
+  Color 
+} from "@wwtelescope/engine";
+import { 
+  SolarSystemObjects, 
+  CoordinatesType, 
+  AltUnits, 
+  MarkerScales, 
+  PlotTypes,
+} from "@wwtelescope/engine-types";
+
 const FIVE_MINUTES = 5 * 60 * 1000;
 const D2S = 24 * 60 * 60;
 
@@ -44,7 +58,7 @@ export function parseHorizonsVectorsForWwt(rawText: string, horizonsCenter = Sol
     // transform date to utc
     values[1] = `${ut.toISOString()}`;
     
-    values.push(`${(new Date(ut.getTime() + FIVE_MINUTES / 2.0).toISOString())}`);
+    values.push(`${(new Date(ut.getTime() + FIVE_MINUTES).toISOString())}`);
     
     // if they are not the same apple the correct frame shift
     if (horizonsCenter !== wwtTrackingObject) {
@@ -62,4 +76,22 @@ export function parseHorizonsVectorsForWwt(rawText: string, horizonsCenter = Sol
   }
   );
   return ["jdtdb,date,x,y,z,end", ...rows].join("\r\n");
+}
+
+
+/**
+ * Setup the spreadsheet layer columns and
+ * coordinates after createTableLayer creates the layer
+ * then style the output.
+ */
+export function setupHorizonsSpreadSheetLayer(layer: SpreadSheetLayer) {
+  layer.set_xAxisColumn(2);
+  layer.set_yAxisColumn(3);
+  layer.set_zAxisColumn(4);
+  layer.set_coordinatesType(CoordinatesType.rectangular);
+  layer.set_astronomical(true);
+  layer.set_cartesianScale(AltUnits.astronomicalUnits);
+  layer.set_altUnit(AltUnits.astronomicalUnits);
+  layer.set_showFarSide(true);
+  return layer;
 }

@@ -42,11 +42,13 @@
           </div>
           <div id="right-buttons">
             <button
-              class="artemis-btn"
+              :class="['artemis-btn', 'copy-btn', copySuccess ? 'copy-success' : '']"
               @click="copyViewUrl"
               @keyup.enter="copyViewUrl"
             >
-              Copy view URL
+              <span>
+                {{ copySuccess ? 'Copied URL!' : 'Copy view URL' }}
+              </span>
             </button>
             <button
               class="artemis-btn"
@@ -118,28 +120,22 @@ import { CoordinatesType, MarkerScales, ReferenceFrames, SolarSystemObjects } fr
 import ArtemisTimeControl from "./components/ArtemisTimeControl.vue";
 
 import { useCameraUrl } from "./composables/useCameraUrl";
-import { moveViewCamera, layerManagerDraw, getDepth, getCoordinatesForScreenPoint,getScreenPointForCoordinates, transformPickPointToWorldSpace, transformWorldPointToPickSpace, renderOneFrame, makeFrustum, type CameraView } from "./wwt-hacks";
+import { 
+  moveViewCamera, 
+  type CameraView, 
+  doWWTHacks
+} from "./wwt-hacks";
+
 import { LayerManager, WWTControl } from "@wwtelescope/engine";
 
-const ZOOM_MIN   = 0.00006;
-const ZOOM_MAX   = 240;
-const LOG_MIN    = Math.log(ZOOM_MIN);
-const LOG_MAX    = Math.log(ZOOM_MAX);
-// Power < 1 stretches the small-fov (zoomed-in) end of the slider.
-const ZOOM_POWER = 3.5;
+import { AltUnits } from "@wwtelescope/engine-types";
+import { parseHorizonsVectorsForWwt, setupHorizonsSpreadSheetLayer } from "./horizons";
+import horizonsEarthData from "@/assets/horizons_results-earth.txt?raw";
+import horizonsMoonData from "@/assets/horizons_results-moon.txt?raw";
+import { useStretchedZoom } from "./composables/useStretchedZoom";
 
-// Map linear slider position [0,1] → stretched slider position [0,1].
-const stretchSlider   = (t: number) => Math.pow(t, ZOOM_POWER);
-// Inverse: stretched slider position → linear slider position.
-const unstretchSlider = (t: number) => Math.pow(t, 1 / ZOOM_POWER);
+const { zoomSliderValue, onZoomSlider, ZOOM_MAX } = useStretchedZoom();
 
-function fovToSlider(fov: number): number {
-  const linear = (Math.log(fov) - LOG_MIN) / (LOG_MAX - LOG_MIN);
-  return unstretchSlider(linear);
-}
-function sliderToFov(t: number): number {
-  return Math.exp(LOG_MIN + stretchSlider(t) * (LOG_MAX - LOG_MIN));
-}
 // watchWwtContainerSize('.wwtelescope-component', '#main-content');
 
 type SheetType = "text" | "video";
@@ -182,133 +178,102 @@ const INITIAL_VIEW: CameraView = {
   zoomDeg: 0.000163,
   rotationDeg: 0,
   angleDeg: 0,
-  opacity: 100,
+  time: (new Date()).getTime(),
 };
 
-const zoomSliderValue = computed(() => fovToSlider(store.zoomDeg));
 
-function onZoomSlider(e: Event) {
-  const fov = sliderToFov(+(e.target as HTMLInputElement).value);
-  const rc = WWTControl.singleton.renderContext;
-  rc.targetCamera.zoom = fov;
-  rc.viewCamera.zoom   = fov;
-  WWTControl.singleton.renderOneFrame();
-}
 
 function goHome() {
   moveViewCamera(INITIAL_VIEW, false);
 }
 
-function doWWTHacks() {
-  WWTControl.singleton.getScreenPointForCoordinates = getScreenPointForCoordinates.bind(WWTControl.singleton);
-  WWTControl.singleton.getCoordinatesForScreenPoint = getCoordinatesForScreenPoint.bind(WWTControl.singleton);
-  // @ts-expect-error this does exist
-  WWTControl.singleton.transformWorldPointToPickSpace = transformWorldPointToPickSpace.bind(WWTControl.singleton);
-  // @ts-expect-error this does exist
-  WWTControl.singleton.transformPickPointToWorldSpace = transformPickPointToWorldSpace.bind(WWTControl.singleton);
-  WWTControl.singleton.renderOneFrame = renderOneFrame.bind(WWTControl.singleton);
-  // @ts-expect-error this does exist
-  WWTControl.singleton.getDepth = getDepth.bind(WWTControl.singleton);
-  // @ts-expect-error this does exist
-  WWTControl.singleton.renderContext.makeFrustum = makeFrustum.bind(WWTControl.singleton.renderContext);
-  // @ts-expect-error this does exist
-  LayerManager._draw = layerManagerDraw;
-}
 
-import { AltUnits } from "@wwtelescope/engine-types";
-// eslint-disable-next-line @typescript-eslint/no-empty-function
-let copyViewUrl: () => Promise<void> = async () => {};
-import { loadHorizonsVectorsForWwt } from "./horizons";
+const { copyViewUrl, copySuccess } = useCameraUrl(INITIAL_VIEW);
+
 const layers = ref<SpreadSheetLayer[]>([]);
 
 const trackingCenter = ref<SolarSystemObjects>(SolarSystemObjects.moon);
-
-async function createArtemisLayers(trackedObject: SolarSystemObjects) {
   
-  const vec = await loadHorizonsVectorsForWwt('./horizons_results-earth.txt', SolarSystemObjects.earth, trackedObject);
+const createHorizonsSpreadSheetLayer = (name: string, dataCsv: string, referenceFrame: string = 'Sky') => {
+  return store.createTableLayer({
+    name,
+    referenceFrame: referenceFrame,
+    dataCsv,
+  }).then(setupHorizonsSpreadSheetLayer);
+};
+
+
+/**
+ * vec is the output of `parseHorizonsVectorsForWwt`, which is a CSV string with a header
+ */
+function splitHorizonsVectors(vec: string) {
   const items = vec.split("\r\n");
   const header = items.shift();
   let bounds: [number, number][] = [];
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  const N = 10;
+
+  const numberOfPartitions = 10;
+  
   const centerStart = 1300;
   const centerEnd = 1500;
-  const end = 2600;
-  for (let i = centerStart; i < centerEnd; i += N) {
-    bounds.push([i, i + N]);
+  const end = items.length + 1;
+  
+  for (let i = centerStart; i < centerEnd; i += numberOfPartitions) {
+    bounds.push([i, i + numberOfPartitions]);
   }
   bounds = [[0, centerStart], ...bounds, [centerEnd, end]];
-  bounds.forEach((bds) => {
-    const data = items.slice(...bds).join("\r\n");
-    store.createTableLayer({
-      name: 'Artemis',
-      referenceFrame: 'Sky',
-      dataCsv: `${header}\r\n${data}`,
-    }).then(layer => {
-      layer.set_xAxisColumn(2);
-      layer.set_yAxisColumn(3);
-      layer.set_zAxisColumn(4);
-      layer.set_coordinatesType(CoordinatesType.rectangular);
-      layer.set_astronomical(true);
-      layer.set_cartesianScale(AltUnits.astronomicalUnits);
-      layer.set_altUnit(AltUnits.astronomicalUnits);
-      layer.set_markerScale(MarkerScales.screen);
-      layer.set_scaleFactor(10);
-      layer.set_color(Color.fromHex("#ffffff"));
-      layer.set_showFarSide(true);
-      layer.set_opacity(25);
-      layers.value.push(layer);
-    });
-  
+  return { 
+    bounds:bounds.map(bds => `${header}\r\n${items.slice(...bds).join("\r\n")}`),
+    header
+  };
+}
 
+const showTrajectory = ref(true);
+const showMoonRefLayer = ref(false);
+
+function createArtemisLayers(trackedObject: SolarSystemObjects) {
+  
+  const vec = parseHorizonsVectorsForWwt(horizonsEarthData, SolarSystemObjects.earth, trackedObject);
+  const { bounds, header } = splitHorizonsVectors(vec);
+
+  bounds.forEach((data) => {
+    // creating the path layer
+    if (showTrajectory.value) {
+      createHorizonsSpreadSheetLayer('Artemis', data)
+        .then(layer => {
+          layer.set_markerScale(MarkerScales.screen);
+          layer.set_scaleFactor(10);
+          layer.set_color(Color.fromHex("#ffffff"));
+          layer.set_opacity(25);
+          layers.value.push(layer);
+        });
+    }
     
-    store.createTableLayer({
-      name: 'Artemis Time',
-      referenceFrame: 'Sky',
-      dataCsv: `${header}\r\n${data}`,
-    }).then(layer => {
-      layer.set_xAxisColumn(2);
-      layer.set_yAxisColumn(3);
-      layer.set_zAxisColumn(4);
-      layer.set_coordinatesType(CoordinatesType.rectangular);
-      layer.set_astronomical(true);
-      layer.set_cartesianScale(AltUnits.astronomicalUnits);
-      layer.set_altUnit(AltUnits.astronomicalUnits);
-      layer.set_markerScale(MarkerScales.screen);
-      layer.set_scaleFactor(20);
-      layer.set_color(Color.fromHex("#ff0000"));
-      layer.set_showFarSide(true);
-      layer.set_opacity(100);
-      layer.set_startDateColumn(1);
-      layer.set_endDateColumn(5);
-      layer.set_decay(2.5 / (60 * 24));
-      layer.set_timeSeries(true);
-      layers.value.push(layer);
-    });
+    // creating the time series layer
+    createHorizonsSpreadSheetLayer('Artemis Time', data)
+      .then(layer => {
+        layer.set_markerScale(MarkerScales.screen);
+        layer.set_scaleFactor(20);
+        layer.set_color(Color.fromHex("#ff0000"));
+        layer.set_opacity(100);
+        layer.set_startDateColumn(1);
+        layer.set_endDateColumn(1);
+        layer.set_decay(4.9/ (60 * 24));
+        layer.set_timeSeries(true);
+        layers.value.push(layer);
+      });
   });
   
-  const showMoonRefLayer = false;
-  if (showMoonRefLayer) {
-    const vecMoon = await loadHorizonsVectorsForWwt('./horizons_results-moon.txt', SolarSystemObjects.moon, trackedObject);
-    store.createTableLayer({
-      name: 'Artemis Moon',
-      referenceFrame: 'Sky',
-      dataCsv: vecMoon,
-    }).then(layer => {
-      layer.set_xAxisColumn(2);
-      layer.set_yAxisColumn(3);
-      layer.set_zAxisColumn(4);
-      layer.set_coordinatesType(CoordinatesType.rectangular);
-      layer.set_astronomical(true);
-      layer.set_cartesianScale(AltUnits.astronomicalUnits);
-      layer.set_altUnit(AltUnits.astronomicalUnits);
-      layer.set_markerScale(MarkerScales.screen);
-      layer.set_scaleFactor(5);
-      layer.set_color(Color.fromHex("#00ffff"));
-      layer.set_showFarSide(true);
-      layer.set_opacity(25);
-      layers.value.push(layer);
-    });
+  
+  if (showMoonRefLayer.value) {
+    const vecMoon = parseHorizonsVectorsForWwt(horizonsMoonData, SolarSystemObjects.moon, trackedObject);
+    createHorizonsSpreadSheetLayer('Moon Reference', vecMoon)
+      .then(layer => {
+        layer.set_markerScale(MarkerScales.screen);
+        layer.set_scaleFactor(5);
+        layer.set_color(Color.fromHex("#00ffff"));
+        layer.set_opacity(25);
+        layers.value.push(layer);
+      });
   
   }
   
@@ -344,8 +309,10 @@ onMounted(() => {
       const z = Number(centerRow[layer.get_zAxisColumn()]);
       // @ts-expect-error this does exist
       const depth = WWTControl.singleton.getDepth(x, y, z);
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      const MOON_RADIUS_AU = 0.000011614;
       // @ts-expect-error this does exist
-      const moonDepth = WWTControl.singleton.getDepth(0, 0, 0);
+      const moonDepth = WWTControl.singleton.getDepth(0, 0, MOON_RADIUS_AU / 6);
       return depth <= moonDepth;
     }.bind(this);
 
@@ -354,7 +321,7 @@ onMounted(() => {
     createArtemisLayers(trackingCenter.value);
     
 
-    ({ copyViewUrl } = useCameraUrl(INITIAL_VIEW));
+    
     positionSet.value = true;
     layersLoaded.value = true;
   });
@@ -397,6 +364,24 @@ const cssVars = computed(() => {
   // Vuetify's root app element is a column flex layout
   // lets #main-content take the remaining height
   // after `#bottom-drawer` takes its own height.
+}
+
+// while #app is a flex, the direct parent
+// is .v-application__wrap
+// this takes the size of it's children
+// so we need to apply height definitions here
+// for a display with a side-panel this is generally
+// what we want
+.v-application__wrap {
+  flex-direction: row-reverse;  // add for the side panel
+  max-height: 100svh;  // force the application to be 100%
+}
+
+#app.app-is-small {
+  .v-application__wrap {
+    flex-direction: column;  // add for the side panel
+    max-height: 100svh;  // force the application to be 100%
+  }
 }
 
 
@@ -535,7 +520,39 @@ and remember, position:absolute is still a positioned parent, so children can be
     cursor: pointer;
     &:hover { background: rgba(255, 255, 255, 0.25); }
   }
+  
+  .copy-btn {
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 15ch;
+
+    &.copy-success {
+      border-color: #0ee7e3;
+      box-shadow: 0 0 6px 1px rgba(7, 105, 226, 0.6);
+    }
+  }
 }
+
+#app.app-is-small .artemis-btn {
+  font-size: 0.65rem;
+}
+
+#app.app-is-small  .copy-btn {
+    width: 16ch;
+}
+
+.icon-wrapper {
+  pointer-events: auto;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 4px !important;
+  color: #fff;
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  cursor: pointer;
+  &:hover { background: rgba(255, 255, 255, 0.25); }
+}
+
+
 
 #bottom-content {
   display: flex;
@@ -564,11 +581,16 @@ and remember, position:absolute is still a positioned parent, so children can be
   }
 }
 
+#app.app-is-small #bottom-content {
+  margin-bottom: 1rem;
+  padding-inline: 1rem;
+}
+
 // From Sara Soueidan (https://www.sarasoueidan.com/blog/focus-indicators/) & Erik Kroes (https://www.erikkroes.nl/blog/the-universal-focus-state/)
-:focus-visible, .focus-visible, .v-selection-control--focus-visible .v-selection-control__input {
+:focus-visible {
   /* Keep this override outside Vuetify's layers so it wins without !important. */
-  outline: 6px double white;
-  box-shadow: 0 0 0 3px black;
+  outline: 4px double white;
+  box-shadow: 0 0 0 2px black;
   border-radius: .025rem;
 }
 

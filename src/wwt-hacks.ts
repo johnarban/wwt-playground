@@ -28,13 +28,13 @@ import type { engineStore } from '@wwtelescope/engine-pinia';
 
 // ─── Camera view type ────────────────────────────────────────────────────────
 
-export interface CameraView {
+export interface CameraView { // hackded from orginal, which had opacity instead of time
   lng: number;
   lat: number;
   zoomDeg: number;
   rotationDeg: number;
   angleDeg: number;
-  opacity: number;
+  time: number,
 }
 
 /**
@@ -140,6 +140,8 @@ export function removeFromWWTRenderLoop(cb: () => void) {
 }
 
 
+
+// Hacks implemented by @Carifio24 to provide depth support to speadsheet layers
 
 import { Coordinates } from "@wwtelescope/engine";
 
@@ -715,3 +717,20 @@ export function layerManagerDraw(renderContext, opacity, astronomical, reference
     renderContext.set_world(matOld);
     renderContext.set_worldBaseNonRotating(matOldNonRotating);
 };
+
+
+export function doWWTHacks() {
+  WWTControl.singleton.getScreenPointForCoordinates = getScreenPointForCoordinates.bind(WWTControl.singleton);
+  WWTControl.singleton.getCoordinatesForScreenPoint = getCoordinatesForScreenPoint.bind(WWTControl.singleton);
+  // @ts-expect-error this does exist
+  WWTControl.singleton.transformWorldPointToPickSpace = transformWorldPointToPickSpace.bind(WWTControl.singleton);
+  // @ts-expect-error this does exist
+  WWTControl.singleton.transformPickPointToWorldSpace = transformPickPointToWorldSpace.bind(WWTControl.singleton);
+  WWTControl.singleton.renderOneFrame = renderOneFrame.bind(WWTControl.singleton);
+  // @ts-expect-error this does exist
+  WWTControl.singleton.getDepth = getDepth.bind(WWTControl.singleton);
+  // @ts-expect-error this does exist
+  WWTControl.singleton.renderContext.makeFrustum = makeFrustum.bind(WWTControl.singleton.renderContext);
+  // @ts-expect-error this does exist
+  LayerManager._draw = layerManagerDraw;
+}
