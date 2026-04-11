@@ -64,6 +64,29 @@
             >
               Track Earth
             </button>
+            <div class="checkbox-settings">
+              <!-- show trajectory points -->
+              <v-checkbox
+                v-model="showTrajectoryPoints"
+                label="Show Trajectory Points"
+                density="compact"
+                hide-details
+              />
+              <!-- show trajectory orbit -->
+              <v-checkbox
+                v-model="showTrajectoryLine"
+                label="Show Trajectory Line"
+                density="compact"
+                hide-details
+              />
+              <!-- show moon comparison -->
+              <v-checkbox
+                v-model="showMoonRefLayer"
+                label="Show Moon Reference Layer"
+                density="compact"
+                hide-details
+              />
+            </div>
           </div>
         </div>
 
@@ -122,7 +145,7 @@ import { GotoRADecZoomParams, engineStore } from "@wwtelescope/engine-pinia";
 import { BackgroundImageset, supportsTouchscreen, useWWTKeyboardControls, CreditLogos, IconButton } from "@cosmicds/vue-toolkit";
 import { useDisplay } from "vuetify";
 import { D2R, H2R  } from "@wwtelescope/astro";
-import { AstroCalc, Color, SpreadSheetLayer } from "@wwtelescope/engine";
+import { AstroCalc, Color, SpreadSheetLayer, OrbitLineList, Vector3d } from "@wwtelescope/engine";
 import { CoordinatesType, MarkerScales, ReferenceFrames, SolarSystemObjects } from "@wwtelescope/engine-types";
 import ArtemisTimeControl from "./components/ArtemisTimeControl.vue";
 
@@ -130,7 +153,9 @@ import { useCameraUrl } from "./composables/useCameraUrl";
 import { 
   moveViewCamera, 
   type CameraView, 
-  doWWTHacks
+  doWWTHacks,
+  addToWWTRenderLoop,
+  removeFromWWTRenderLoop,
 } from "./wwt-hacks";
 
 import { LayerManager, WWTControl } from "@wwtelescope/engine";
@@ -260,7 +285,7 @@ function splitHorizonsVectors(vec: string) {
   };
 }
 
-const showTrajectory = ref(true);
+const showTrajectoryPoints = ref(true);
 const showMoonRefLayer = ref(false);
 
 function createArtemisLayers(trackedObject: SolarSystemObjects) {
@@ -270,7 +295,7 @@ function createArtemisLayers(trackedObject: SolarSystemObjects) {
 
   bounds.forEach((data) => {
     // creating the path layer
-    if (showTrajectory.value) {
+    if (showTrajectoryPoints.value) {
       createHorizonsSpreadSheetLayer('Artemis', data)
         .then(layer => {
           layer.set_markerScale(MarkerScales.screen);
@@ -314,6 +339,54 @@ function createArtemisLayers(trackedObject: SolarSystemObjects) {
 
 function removeArtemisLayers() {
   layers.value.forEach(layer => store.deleteLayer(layer.id.toString()));
+}
+
+
+function createArtemisOrbitLineList(trackedObject: SolarSystemObjects) {
+  const lineList = new OrbitLineList();
+  const colorHex = "#ffffff";
+  const color = Color.fromHex(colorHex);
+  color.a = 255;
+  const vec = parseHorizonsVectorsForWwt(horizonsEarthData, SolarSystemObjects.earth, trackedObject);
+  const items = vec.split("\r\n");
+  const header = items.shift();
+  const points = items.map(line => {
+    const parts = line.split(",");
+    return Vector3d.create(
+      +parts[2],
+      +parts[4],
+      +parts[3]
+    );
+  });
+  for (let i = 1; i < points.length; i++) {
+    lineList.addLine(
+      points[i - 1], 
+      points[i], 
+      color,
+      color,
+    );
+  }
+  return lineList;
+}
+
+const artemisOrbitLineList = ref(createArtemisOrbitLineList(trackingCenter.value));
+function setArtemisLineList() {
+  artemisOrbitLineList.value = createArtemisOrbitLineList(trackingCenter.value);
+}
+const showTrajectoryLine = ref(true);
+function drawArtemisOrbit () {
+  if (showTrajectoryLine.value) {
+    artemisOrbitLineList.value.set_depthBuffered(true);
+    artemisOrbitLineList.value.drawLines(WWTControl.singleton.renderContext, 1, Color.fromHex("#ffffff"));
+  }
+}
+
+function showArtemisLineList() {
+  setArtemisLineList();
+  addToWWTRenderLoop(drawArtemisOrbit);
+}
+function hideArtemisLineList() {
+  removeFromWWTRenderLoop(drawArtemisOrbit);
 }
 
 onMounted(() => {
@@ -360,13 +433,19 @@ onMounted(() => {
   });
 });
 
-watch([trackingCenter, showTrajectory, showMoonRefLayer], ([trackedObject, _, __ ]) => {
-  removeArtemisLayers();
-  store.setTrackedObject(trackedObject);
-  if (trackedObject === SolarSystemObjects.earth) {
-    moveViewCamera(EARTH_VIEW, false);
+watch(trackingCenter, (trackedObject, oldCenter) => {
+  if (oldCenter !== trackedObject) {
+    store.setTrackedObject(trackedObject);
+    if (trackedObject === SolarSystemObjects.earth) {
+      moveViewCamera(EARTH_VIEW, false);
+    }
   }
+});
+watch([trackingCenter, showTrajectoryPoints, showMoonRefLayer, showTrajectoryLine], ([trackedObject, _, __ ]) => {
+  removeArtemisLayers();
+  hideArtemisLineList();
   createArtemisLayers(trackedObject);
+  showArtemisLineList();
 });
 
 const ready = computed(() => layersLoaded.value && positionSet.value);

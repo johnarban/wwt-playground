@@ -104,5 +104,14 @@ declare module "@wwtelescope/engine" {
   namespace Planets {
     function getPlanet3dLocationJD(target: SolarSystemObjects, jNow: number): Vector3d;
   }
+  
+  // this on the other hand is not exported at all, so we create the class declaration here
+  export class OrbitLineList {
+    addLine(pt1: Vector3d, pt2: Vector3d, color1: Color, color2: Color): void;
+    drawLines(context: RenderContext, opacity: number, color: Color): void;
+    set_depthBuffered(buffered: boolean): void;
+    clear(): void;
+  }
+
 
 };
