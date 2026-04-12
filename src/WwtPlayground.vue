@@ -84,7 +84,8 @@
                 v-model="showSunRefLayer"
                 label="Show Sun Reference Layer"
                 density="compact"
-                hide-details
+                :persistent-hint="showSunRefLayer"
+                hint="Sun layer is not properly aligned"
               />
             </div>
           </div>
