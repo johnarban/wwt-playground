@@ -50,21 +50,15 @@
                 {{ copySuccess ? 'Copied URL!' : 'Copy view URL' }}
               </span>
             </button>
-            <button
-              class="artemis-btn"
-              @click="trackingCenter = SolarSystemObjects.moon"
-              @keyup.enter="trackingCenter = SolarSystemObjects.moon"
-            >
-              Track Moon
-            </button>
-            <button
-              class="artemis-btn"
-              @click="trackingCenter = SolarSystemObjects.earth"
-              @keyup.enter="trackingCenter = SolarSystemObjects.earth"
-            >
-              Track Earth
-            </button>
-            <div class="checkbox-settings">
+            <fieldset class="tracking-toggle">
+              <legend>
+                Path Reference frame:
+              </legend>
+              <EarthMoonToggle
+                v-model="trackingCenter"
+              />
+            </fieldset>
+            <div class="checkbox-settings text-body-small">
               <!-- show trajectory points -->
               <v-checkbox
                 v-model="showTrajectoryPoints"
@@ -148,6 +142,7 @@ import { D2R, H2R  } from "@wwtelescope/astro";
 import { AstroCalc, Color, SpreadSheetLayer, OrbitLineList, Vector3d } from "@wwtelescope/engine";
 import { CoordinatesType, MarkerScales, ReferenceFrames, SolarSystemObjects } from "@wwtelescope/engine-types";
 import ArtemisTimeControl from "./components/ArtemisTimeControl.vue";
+import EarthMoonToggle from "./components/EarthMoonToggle.vue";
 
 import { useCameraUrl } from "./composables/useCameraUrl";
 import { 
