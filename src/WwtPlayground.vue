@@ -562,6 +562,8 @@ and remember, position:absolute is still a positioned parent, so children can be
   display: flex;
   flex-direction: column;
   justify-content: space-between; // pushes top and bottom content apart
+  
+  font-size: 1rem;
 }
 
 // moved modal content to Loader.vue
@@ -597,7 +599,6 @@ and remember, position:absolute is still a positioned parent, so children can be
     color: #fff;
     width: 20px;
     height: 20px;
-    font-size: 0.9rem;
     line-height: 1;
     display: flex;
     align-items: center;
@@ -625,7 +626,7 @@ and remember, position:absolute is still a positioned parent, so children can be
     border: 1px solid rgba(255, 255, 255, 0.45);
     border-radius: 4px;
     color: #fff;
-    font-size: 0.8rem;
+    font-size: 1em;
     padding: 4px 10px;
     cursor: pointer;
     &:hover { background: rgba(255, 255, 255, 0.25); }
@@ -643,7 +644,7 @@ and remember, position:absolute is still a positioned parent, so children can be
 }
 
 #app.app-is-small .artemis-btn {
-  font-size: 0.65rem;
+  font-size: 1em;
 }
 
 #app.app-is-small  .copy-btn {
@@ -731,4 +732,36 @@ and remember, position:absolute is still a positioned parent, so children can be
   overflow: auto;
 }
 
+// Fix: @cosmicds/vue-toolkit bundles an older unlayered Vuetify whose
+// `.v-selection-control__input { position: relative }` beats the layered
+// `.v-switch .v-selection-control__input { position: absolute }` from the
+// app's Vuetify (unlayered always beats @layer). This restores the correct value.
+.v-switch .v-selection-control__input {
+  position: absolute;
+}
+
+.v-input.moon-earth-swtich {
+  .v-selection-control {
+    gap: 1em;
+  }
+}
+
+fieldset.tracking-toggle {
+  padding: 0;
+  padding-top: 0.5em;
+  border: none;
+  font-size: 1em;
+}
+
+fieldset.tracking-toggle legend {
+  font-size: 0.9em;
+}
+
+.v-checkbox {
+  font-size: 0.9rem;
+}
+
+.v-label {
+  font-size: 1em;
+}
 </style>
