@@ -80,6 +80,12 @@
                 density="compact"
                 hide-details
               />
+              <v-checkbox
+                v-model="showSunRefLayer"
+                label="Show Sun Reference Layer"
+                density="compact"
+                hide-details
+              />
             </div>
           </div>
         </div>
@@ -166,6 +172,7 @@ import {
 } from "./horizons";
 import horizonsEarthData from "@/assets/horizons_results-earth.txt?raw";
 import horizonsMoonData from "@/assets/horizons_results-moon.txt?raw";
+import horizonsSunData from "@/assets/horizons_results-sun.txt?raw";
 
 const { zoomSliderValue, onZoomSlider, ZOOM_MAX } = useStretchedZoom();
 
@@ -259,6 +266,7 @@ const createHorizonsSpreadSheetLayer = (name: string, dataCsv: string, reference
 
 const showTrajectoryPoints = ref(true);
 const showMoonRefLayer = ref(false);
+const showSunRefLayer = ref(false);
 
 function createArtemisLayers(trackedObject: SolarSystemObjects) {
   
@@ -302,7 +310,18 @@ function createArtemisLayers(trackedObject: SolarSystemObjects) {
         layer.set_opacity(25);
         layers.value.push(layer);
       });
+  }
   
+  if (showSunRefLayer.value) {
+    const vecSun = parseHorizonsVectorsForWwt(horizonsSunData, SolarSystemObjects.sun, trackedObject);
+    createHorizonsSpreadSheetLayer('Sun Reference', vecSun)
+      .then(layer => {
+        layer.set_markerScale(MarkerScales.screen);
+        layer.set_scaleFactor(5);
+        layer.set_color(Color.fromHex("#eef20b"));
+        layer.set_opacity(100);
+        layers.value.push(layer);
+      });
   }
   
 }
@@ -396,7 +415,13 @@ watch(trackingCenter, (trackedObject, oldCenter) => {
     }
   }
 });
-watch([trackingCenter, showTrajectoryPoints, showMoonRefLayer, showTrajectoryLine], ([trackedObject, _, __ ]) => {
+watch([
+  trackingCenter, 
+  showTrajectoryPoints,
+  showMoonRefLayer, 
+  showTrajectoryLine,
+  showSunRefLayer,
+], ([trackedObject, _, __ ]) => {
   removeArtemisLayers();
   hideArtemisLineList();
   createArtemisLayers(trackedObject);
