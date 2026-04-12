@@ -381,6 +381,7 @@ onMounted(() => {
 
     store.setTrackedObject(trackingCenter.value);
     createArtemisLayers(trackingCenter.value);
+    showArtemisLineList();
     
     positionSet.value = true;
     layersLoaded.value = true;
