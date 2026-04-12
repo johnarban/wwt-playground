@@ -259,25 +259,6 @@ export function getScreenPointForCoordinates(x, y, z=0) {
     return result;
 }
 
-// export function getDepth(x, y, z) {
-//   const pt = this.getScreenPointForCoordinates(x, y, z);
-//   const near = -1;
-//   const far = 1;
-//   const nearPt = this.transformPickPointToWorldSpace(pt, this.renderContext.width, this.renderContext.height, true, near);
-//   const farPt = this.transformPickPointToWorldSpace(pt, this.renderContext.width, this.renderContext.height, true, far);
-//   // In principle, should give the same value for y and z
-//   return (x - nearPt.x) / (farPt.x - nearPt.x);
-// }
-
-export function getDepth(x, y, z) {
-    const worldPoint = Vector3d.create(x, y, z);
-    var m = Matrix3d.multiplyMatrix(this.renderContext.get_world(), this.renderContext.get_view());
-    m = Matrix3d.multiplyMatrix(m, this.renderContext.get_projection());
-
-    var vz = (worldPoint.x * m.get_m13() + worldPoint.y * m.get_m23() + worldPoint.z * m.get_m33() + m.get_m43());
-
-    return vz;
-}
 
 export function renderOneFrame() {
     if (this.renderContext.get_backgroundImageset() != null) {
@@ -599,6 +580,7 @@ export function makeFrustum() {
     this._frustum[4].b = viewProjection.get_m23();
     this._frustum[4].c = viewProjection.get_m33();
     this._frustum[4].d = viewProjection.get_m43();
+    // this is what was added
     if (this.get_backgroundImageset().get_dataSetType() <2 || this.get_backgroundImageset().get_dataSetType() == 4) {
       this._frustum[4].a += viewProjection.get_m14();
       this._frustum[4].b += viewProjection.get_m24();
@@ -622,43 +604,7 @@ export function makeFrustum() {
     this._setMatrixes();
 }
 
-// TODO: This doesn't work
-// export function getTableDataInView() {
-//     var data = '';
-//     var first = true;
-//     for (const col of this.get_header()) {
-//         if (!first) {
-//             data += '\t';
-//         }
-//         else {
-//             first = false;
-//         }
-//         data += col;
-//     }
-//     data += '\r\n';
-//     const planetMode = WWTControl.singleton.renderContext.get_backgroundImageset().get_dataSetType() < 2;
-//     for (const row of this.get__table().rows) {
-//         var x = parseFloat(row[this.get_xAxisColumn()]);
-//         var y = parseFloat(row[this.get_yAxisColumn()]);
-//         var z = parseFloat(row[this.get_zAxisColumn()]);
-//         var position = Vector3d.create(x, y, z);
-//         if (!this._isPointInFrustum$1(position, WWTControl.singleton.renderContext.get_frustum())) {
-//             continue;
-//         }
-//         first = true;
-//         for (const col of row) {
-//             if (!first) {
-//                 data += '\t';
-//             }
-//             else {
-//                 first = false;
-//             }
-//             data += col;
-//         }
-//         data += '\r\n';
-//     }
-//     return data;
-// }
+
 
 export function layerManagerDraw(renderContext, opacity, astronomical, referenceFrame, nested, cosmos, filter=null) {
     if (!(referenceFrame in LayerManager.get_allMaps())) {
@@ -705,7 +651,7 @@ export function layerManagerDraw(renderContext, opacity, astronomical, reference
                         if (SpaceTimeController.get_jNow() > layerEnd) {
                             fadeOpacity = ((fadeOut - SpaceTimeController.get_jNow()) / (layer.get_fadeSpan() / 864000000));
                         }
-                        if (filter && filter(layer)) {
+                        if (!filter || filter(layer)) {
                             layer.set_astronomical(astronomical);
                             layer.draw(renderContext, opacity * fadeOpacity, cosmos);
                         }
@@ -756,13 +702,15 @@ function spreadsheetLayerDraw(renderContext, opacity, flat) {
         this.triangleList.draw(renderContext, opacity * this.get_opacity(), 1);
     }
     if (this.pointList != null) {
-        this.pointList.depthBuffered = false;
+        this.pointList.depthBuffered = true; // make sure it is depth buffered
         this.pointList.showFarSide = this.get_showFarSide();
         this.pointList.decay = (this.timeSeries) ? this.decay : 0;
         this.pointList.sky = this.get_astronomical();
         this.pointList.timeSeries = this.timeSeries;
         this.pointList.jNow = jNow;
         this.pointList.scale = (this._markerScale$1 === 1) ? adjustedScale : -adjustedScale;
+        var gl = renderContext.gl;
+        if (gl) gl.depthMask(false); // but don't have the depth applied to the points themeselves (avoid weird black borders)
         switch (this._plotType$1) {
             case 0:
                 this.pointList.draw(renderContext, opacity * this.get_opacity(), false);
@@ -783,6 +731,7 @@ function spreadsheetLayerDraw(renderContext, opacity, flat) {
             default:
                 break;
         }
+        if (gl) gl.depthMask(true); // yes, depth again 
     }
     if (this.lineList != null) {
         this.lineList.sky = this.get_astronomical();
@@ -811,9 +760,9 @@ export function doWWTHacks() {
   WWTControl.singleton.transformPickPointToWorldSpace = transformPickPointToWorldSpace.bind(WWTControl.singleton);
   WWTControl.singleton.renderOneFrame = renderOneFrame.bind(WWTControl.singleton);
   // @ts-expect-error this does exist
-  WWTControl.singleton.getDepth = getDepth.bind(WWTControl.singleton);
+  // WWTControl.singleton.getDepth = getDepth.bind(WWTControl.singleton);
   // @ts-expect-error this does exist
-  WWTControl.singleton.renderContext.makeFrustum = makeFrustum.bind(WWTControl.singleton.renderContext);
+  WWTControl.singleton.renderContext.makeFrustum = makeFrustum.bind(WWTControl.singleton.renderContext); // this can be commented out and work fine. this i think was to do if in planet mode
   // @ts-expect-error this does exist
   LayerManager._draw = layerManagerDraw;
   SpreadSheetLayer.prototype.draw = spreadsheetLayerDraw;

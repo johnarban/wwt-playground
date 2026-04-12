@@ -256,29 +256,6 @@ const createHorizonsSpreadSheetLayer = (name: string, dataCsv: string, reference
 };
 
 
-/**
- * vec is the output of `parseHorizonsVectorsForWwt`, which is a CSV string with a header
- */
-function splitHorizonsVectors(vec: string) {
-  const items = vec.split("\r\n");
-  const header = items.shift();
-  let bounds: [number, number][] = [];
-
-  const numberOfPartitions = 10;
-  
-  const centerStart = 1300;
-  const centerEnd = 1500;
-  const end = items.length + 1;
-  
-  for (let i = centerStart; i < centerEnd; i += numberOfPartitions) {
-    bounds.push([i, i + numberOfPartitions]);
-  }
-  bounds = [[0, centerStart], ...bounds, [centerEnd, end]];
-  return { 
-    bounds:bounds.map(bds => `${header}\r\n${items.slice(...bds).join("\r\n")}`),
-    header
-  };
-}
 
 const showTrajectoryPoints = ref(true);
 const showMoonRefLayer = ref(false);
@@ -286,35 +263,33 @@ const showMoonRefLayer = ref(false);
 function createArtemisLayers(trackedObject: SolarSystemObjects) {
   
   const vec = parseHorizonsVectorsForWwt(horizonsEarthData, SolarSystemObjects.earth, trackedObject);
-  const { bounds, header } = splitHorizonsVectors(vec);
 
-  bounds.forEach((data) => {
-    // creating the path layer
-    if (showTrajectoryPoints.value) {
-      createHorizonsSpreadSheetLayer('Artemis', data)
-        .then(layer => {
-          layer.set_markerScale(MarkerScales.screen);
-          layer.set_scaleFactor(10);
-          layer.set_color(Color.fromHex("#ffffff"));
-          layer.set_opacity(25);
-          layers.value.push(layer);
-        });
-    }
-    
-    // creating the time series layer
-    createHorizonsSpreadSheetLayer('Artemis Time', data)
+  // creating the path layer
+  if (showTrajectoryPoints.value) {
+    createHorizonsSpreadSheetLayer('Artemis', vec)
       .then(layer => {
-        layer.set_markerScale(MarkerScales.screen);
-        layer.set_scaleFactor(20);
-        layer.set_color(Color.fromHex("#ff0000"));
-        layer.set_opacity(100);
-        layer.set_startDateColumn(1);
-        layer.set_endDateColumn(1);
-        layer.set_decay(4.9/ (60 * 24));
-        layer.set_timeSeries(true);
+        layer.set_markerScale(MarkerScales.world);
+        layer.set_scaleFactor(0.0012);
+        layer.set_color(Color.fromHex("#ffffff"));
+        layer.set_opacity(25);
         layers.value.push(layer);
       });
-  });
+  }
+  
+  // creating the time series layer
+  createHorizonsSpreadSheetLayer('Artemis Time', vec)
+    .then(layer => {
+      layer.set_markerScale(MarkerScales.screen);
+      layer.set_scaleFactor(40);
+      layer.set_color(Color.fromHex("#ff0000"));
+      layer.set_opacity(100);
+      layer.set_startDateColumn(1);
+      layer.set_endDateColumn(1);
+      layer.set_decay(4.9/ (60 * 24));
+      layer.set_timeSeries(true);
+      layers.value.push(layer);
+    });
+
   
   
   if (showMoonRefLayer.value) {
@@ -399,29 +374,13 @@ onMounted(() => {
     store.setTrackedObject(SolarSystemObjects.moon);
 
     // @ts-expect-error this does exist
-    WWTControl.singleton.shallowLayerTest = function(layer) {
-      const table = layer.get__table();
-      const rows = table.rows;
-      const count = rows.length;
-      const center = Math.floor(count / 2);
-      const centerRow = rows[center];
-      const x = Number(centerRow[layer.get_xAxisColumn()]);
-      const y = Number(centerRow[layer.get_yAxisColumn()]);
-      const z = Number(centerRow[layer.get_zAxisColumn()]);
-      // @ts-expect-error this does exist
-      const depth = WWTControl.singleton.getDepth(x, y, z);
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      const MOON_RADIUS_AU = 0.000011614;
-      // @ts-expect-error this does exist
-      const moonDepth = WWTControl.singleton.getDepth(0, 0, MOON_RADIUS_AU / 6);
-      return depth <= moonDepth;
-    }.bind(this);
+    WWTControl.singleton.shallowLayerTest = function(layer: unknown) {
+      return true; // just pass true?????? this can't be right, but it works
+    };
 
 
     store.setTrackedObject(trackingCenter.value);
     createArtemisLayers(trackingCenter.value);
-    
-
     
     positionSet.value = true;
     layersLoaded.value = true;
