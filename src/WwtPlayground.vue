@@ -265,7 +265,7 @@ const createHorizonsSpreadSheetLayer = (name: string, dataCsv: string, reference
 
 
 
-const showTrajectoryPoints = ref(true);
+const showTrajectoryPoints = ref(false);
 const showMoonRefLayer = ref(false);
 const showSunRefLayer = ref(false);
 
@@ -395,7 +395,7 @@ onMounted(() => {
 
     // @ts-expect-error this does exist
     WWTControl.singleton.shallowLayerTest = function(layer: unknown) {
-      return true; // just pass true?????? this can't be right, but it works
+      return store.zoomDeg < 0.03; // just pass true?????? this can't be right, but it works
     };
 
 
@@ -422,7 +422,7 @@ watch([
   showMoonRefLayer, 
   showTrajectoryLine,
   showSunRefLayer,
-], ([trackedObject, _, __ ]) => {
+], ([trackedObject,,,,,]) => {
   removeArtemisLayers();
   hideArtemisLineList();
   createArtemisLayers(trackedObject);
