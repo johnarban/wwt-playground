@@ -103,7 +103,7 @@ import LayerControls from "./components/LayerControls.vue";
 import LayerList from "./components/LayerList.vue";
 
 
-import { applyFitsSlice } from "./alt-hacks";
+import { applyFitsSlice } from "./wwt-hacks";
 import { Colormaps } from "./types";
 
 type SheetType = "text" | "video";
