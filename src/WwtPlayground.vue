@@ -32,12 +32,15 @@
 
       <div id="top-content">
         <div id="left-buttons">
-          <icon-button
-            icon="book-open"
-            :color="buttonColor"
-            tooltip-location="start"
-          >
-          </icon-button>
+          <ul id="available-imagesets">
+            <li 
+              v-for="iset of store.activeLayers"
+              :key="iset"
+              class="available-imagesets-items"
+            >
+              {{ iset }}
+            </li>
+          </ul>
         </div>
         <div id="center-buttons">
         </div>
@@ -49,14 +52,14 @@
       <!-- This block contains the elements (e.g. the project icons) displayed along the bottom of the screen -->
 
       <div id="bottom-content">
-        <div
-          v-if="!smallSize"
-          id="body-logos"
-        >
-          <CreditLogos
-            :default-logos="['cosmicds', 'wwt']"
-          />
-        </div>
+        <input 
+          id="opacity"
+          v-model="opacity"
+          type="range"
+          :min="0"
+          :max="1"
+          :step="0.01"
+        />
       </div>
     </div>
   </v-app>
@@ -64,7 +67,7 @@
 
 <script setup lang="ts">
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ref, reactive, computed, onMounted, nextTick } from "vue";
+import { ref, reactive, computed, onMounted, nextTick, watch } from "vue";
 import { GotoRADecZoomParams, engineStore } from "@wwtelescope/engine-pinia";
 import { BackgroundImageset, skyBackgroundImagesets, supportsTouchscreen, blurActiveElement, useWWTKeyboardControls, WWTEngineStore, CreditLogos, IconButton } from "@cosmicds/vue-toolkit";
 import { useDisplay } from "vuetify";
@@ -86,10 +89,11 @@ const { smAndDown } = useDisplay();
 const props = withDefaults(defineProps<WwtPlaygroundProps>(), {
   wwtNamespace: "wwt-playground",
   initialCameraParams: () => {
+    // 05 32 24.00 -67 41 18.0
     return {
-      raRad: 0,
-      decRad: 0,
-      zoomDeg: 60
+      raRad: (5 + 32/60 + 34/2600) * 15 * Math.PI/180,
+      decRad: -1 * (67 + 41/60 + 18 / 3600) * Math.PI / 180,
+      zoomDeg: 1
     };
   }
 });
@@ -103,9 +107,19 @@ const positionSet = ref(false);
 const accentColor = ref("#ffffff");
 const buttonColor = ref("#ffffff");
 
+
+import { loadHips } from "./load_hips_imagery";
+const loadedHips: string[] = [];
+
+const opacity = ref(1);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const hipsLayer = ref<any>(null);
 onMounted(() => {
   store.waitForReady().then(async () => {
     skyBackgroundImagesets.forEach(iset => backgroundImagesets.push(iset));
+    store.applySetting(['showGrid', true]);
+    store.applySetting(['showGalacticGrid', true]);
+    
     store.gotoRADecZoom({
       ...props.initialCameraParams,
       instant: true
@@ -113,6 +127,37 @@ onMounted(() => {
     // If there are layers to set up, do that here!
     layersLoaded.value = true;
   });
+  loadHips('https://alasky.cds.unistra.fr/2MASS/Color/', 'test')
+    .then(iset => {
+      return store.addImageSetLayer({
+        url: iset.get_url(),
+        mode: "preloaded",
+        name: iset.get_name(),
+        goto: false,
+      });
+    })
+    .then(layer => {
+      hipsLayer.value = layer;
+      layer.set_enabled(true);
+      layer.set_opacity(1);
+      const iset = layer.get_imageSet();
+      const hipsProps = iset.get_hipsProperties();
+      store.gotoRADecZoom({
+        // @ts-expect-error _properties.hips_init_ra exists
+        raRad: +hipsProps._properties.hips_initial_ra * Math.PI / 180,
+        // @ts-expect-error _properties.hips_init_dec exists
+        decRad: +hipsProps._properties.hips_initial_dec * Math.PI / 180,
+        zoomDeg: store.zoomDeg,
+        instant: true,
+      }).then(() => console.log('moved'));
+    });
+  
+});
+
+watch(opacity, (o) => {
+  if (hipsLayer.value !== null) {
+    hipsLayer.value.set_opacity(o);
+  }
 });
 
 const ready = computed(() => layersLoaded.value && positionSet.value);
@@ -311,4 +356,16 @@ button:focus-visible,
   
 }
 
+#opacity {
+  width: 50%;
+  pointer-events: auto;
+}
+
+#available-imagesets {
+  width: 500px;
+}
+
+.available-imagesets-items {
+  height: 15px;
+}
 </style>
