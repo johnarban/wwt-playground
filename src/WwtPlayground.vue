@@ -30,10 +30,8 @@
           <div id="center-buttons">
           </div>
           <div id="right-buttons">
-            <brightness-contrast
-              element=".wwtelescope-component > canvas"
-              :initial-brightness="2.5"
-              :initial-contrast="1"
+            <ImagesetPositioner
+              wtml-url="./start.wtml"
             />
           </div>
         </div>
@@ -86,6 +84,8 @@ import { D2R, R2D, H2D, R2H, H2R, D2H  } from "@wwtelescope/astro";
 import { AstroCalc, WWTControl, SpaceTimeController, Settings } from "@wwtelescope/engine";
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
 
+import ImagesetPositioner from "./components/ImagesetPositioner.vue";
+
 import { watchWwtContainerSize } from "./composables/wwtContainerSize";
 // watchWwtContainerSize('.wwtelescope-component', '#main-content');
 
@@ -133,9 +133,13 @@ function toggleSheet() {
   }
 }
 
+
 onMounted(() => {
   store.waitForReady().then(async () => {
     skyBackgroundImagesets.forEach(iset => backgroundImagesets.push(iset));
+    
+    
+    
     store.gotoRADecZoom({
       ...props.initialCameraParams,
       instant: true
@@ -219,7 +223,7 @@ If any of those happen, the ResizeObserver composable may be needed again to pus
   right: 0;
   // The composable sets the host element's inline width/height from #main-content.
   transition: height 0.2s ease-in-out;
-  opacity: 0.5;
+  opacity: 1;
 }
 
 /*

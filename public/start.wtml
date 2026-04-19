@@ -1,0 +1,40 @@
+<Folder Browseable="True"
+    Group="test-imaage"
+    Name="TEST IMAGE"
+    Searchable="True">
+    <Place 
+        Name="SINGS"
+        RA="23.574192007285994"
+        Dec="-36.101100147382596"
+        ZoomLevel="0.5"
+        DataSetType="Sky"
+        Opacity="100"
+        Thumbnail="./thumbnail.jpeg"
+        Constellation=""
+    >
+        <ForegroundImageSet>
+            <ImageSet DataSetType="Sky"
+                BandPass="Visible"
+                Url="./IC_5332_I_Ha_m2002.jpeg"
+                TileLevels="0"
+                WidthFactor="2"
+                Rotation="-0.1972222055"
+                Projection="SkyImage"
+                FileType=".jpg"
+                CenterY="-36.051933480719995"
+                CenterX="353.5538801093333"
+                BottomsUp="False"
+                OffsetX="640"
+                OffsetY="630.9414088215932"
+                BaseTileLevel="0"
+                BaseDegreesPerTile="0.0002404218362"
+                Name="SINGS">
+                <Credits>SINGS</Credits>
+                <CreditsUrl>https://ned.ipac.caltech.edu/byname?objname=IC+5332&amp;hconst=67.8&amp;omegam=0.308&amp;omegav=0.692&amp;wmap=4&amp;corr_z=1</CreditsUrl>
+                <Description>
+                        SINGS H-alpha image of IC 5332
+                </Description>
+            </ImageSet>
+        </ForegroundImageSet>
+    </Place>
+</Folder>
