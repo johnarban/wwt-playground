@@ -58,17 +58,31 @@
         />
       </label>
       <!-- reset button -->
-      <button
-        class="ip--reset-button"
-        @click="() => {
-          offsetX = 0;
-          offsetY = 0;
-          angle = 0;
-          imagesetScale = 1;
-        }"
-      >
-        Reset
-      </button>
+      <div class="ip-actions">
+        <button
+          class="ip--reset-button"
+          @click="() => {
+            offsetX = 0;
+            offsetY = 0;
+            angle = 0;
+            imagesetScale = 1;
+          }"
+        >
+          Reset
+        </button>
+        <button
+          class="ip--reset-button wtml-export__button"
+          @click="copyWtml"
+        >
+          {{ copyButtonLabel }}
+        </button>
+        <button
+          class="ip--reset-button wtml-export__button"
+          @click="downloadWtml"
+        >
+          Download WTML
+        </button>
+      </div>
     </fieldset>
     <div class="updated-values-display">
       <!-- show the updated WTML values -->
@@ -80,6 +94,17 @@
         <li>Rotation: {{ (originalLayerSettings.rotation + angle) }}</li>
         <li>Scale: {{ (originalLayerSettings.baseDegreesPerTile * imagesetScale) }}</li>
       </ul>
+      <div
+        v-if="layer"
+        class="wtml-export"
+      >
+        <textarea
+          v-if="wtmlText"
+          readonly
+          class="wtml-export__text"
+          :value="wtmlText"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -90,6 +115,7 @@ import  { type ImageSetLayer } from '@wwtelescope/engine';
 import { engineStore } from '@wwtelescope/engine-pinia';
 import { useWtmlLoader } from "@/composables/useWtmlLoader";
 import { useImageSetManipulation } from "@/imageset_manipulation";
+import { imagesetToWtml } from "@/wtml";
 
 
 // only props is the wtml url
@@ -149,8 +175,52 @@ watch(opacity, (newOpacity) => {
   }
 });
 
+const copyButtonLabel = ref('Copy WTML');
+const wtmlText = ref('');
+
+function generateWtml() {
+  const imageset = layer.value?.get_imageSet();
+  wtmlText.value = imageset ? imagesetToWtml(imageset) : '';
+  return wtmlText.value;
+}
+
+async function copyWtml() {
+  const text = generateWtml();
+  if (!text) {
+    return;
+  }
+
+  await navigator.clipboard.writeText(text);
+  copyButtonLabel.value = 'Copied';
+
+  window.setTimeout(() => {
+    copyButtonLabel.value = 'Copy WTML';
+  }, 1500);
+}
+
+function downloadWtml() {
+  const text = generateWtml();
+  if (!text) {
+    return;
+  }
+
+  const imagesetName = layer.value?.get_imageSet().get_name() ?? 'imageset';
+  // safeName - get rid of file extensions and other special characters
+  const safeName = imagesetName.replace(/\.[^/.]+$/, '').replace(/[^a-z0-9_-]+/gi, '-').replace(/^-+|-+$/g, '') || 'imageset';
+  const blob = new Blob([text], { type: 'application/xml' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+
+  link.href = url;
+  link.download = `${safeName}.wtml`;
+  link.click();
+
+  URL.revokeObjectURL(url);
+}
+
 watch(() => prop.imageset, (newImageset) => {
   if (newImageset) {
+    wtmlText.value = '';
     layer.value = newImageset;
     onFirstLayerLoad(newImageset);
   }
@@ -158,6 +228,7 @@ watch(() => prop.imageset, (newImageset) => {
 
 watch(() => prop.wtmlUrl, (newWtmlUrl) => {
   if (newWtmlUrl) {
+    wtmlText.value = '';
     useWtmlLoader(newWtmlUrl, {
       onNewLayer: onFirstLayerLoad,
       goTo: false,
@@ -171,15 +242,46 @@ watch(() => prop.wtmlUrl, (newWtmlUrl) => {
 #imageset-positioner {
   width: 500px;
   pointer-events: auto;
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
 #imageset-positioner > legend {
-  padding: 0 0.5rem;
+  /* padding: 0 0.5rem; */
 }
 
 .updated-values-display {
   margin-top: 1rem;
   font-size: 0.9rem;
+  pointer-events: auto;
+}
+
+.wtml-export {
+  margin-top: 1rem;
+}
+
+.ip-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.wtml-export__button {
+  margin-top: 0;
+}
+
+.wtml-export__text {
+  width: 500px;
+  max-width: 100%;
+  min-height: 14rem;
+  padding: 0.75rem;
+  color: white;
+  background-color: rgba(0, 0, 0, 0.8);
+  border: 1px solid white;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  resize: vertical;
   pointer-events: auto;
 }
 
