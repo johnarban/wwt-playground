@@ -1,5 +1,8 @@
 <template>
-  <div id="imageset-positioner-container">
+  <div 
+    v-if="prop.wtmlUrl || prop.imageset"
+    id="imageset-positioner-container"
+  >
     <fieldset id="imageset-positioner">
       <legend>
         Imageset Position
@@ -91,7 +94,8 @@ import { useImageSetManipulation } from "@/imageset_manipulation";
 
 // only props is the wtml url
 const prop = defineProps<{
-  wtmlUrl: string;
+  wtmlUrl?: string | null;
+  imageset?: ImageSetLayer | null;
 }>();
 
 
@@ -106,15 +110,20 @@ function onFirstLayerLoad(newLayer: ImageSetLayer) {
   store.gotoRADecZoom({
     raRad: iset.get_centerX() * Math.PI / 180,
     decRad: iset.get_centerY() * Math.PI / 180,
-    zoomDeg: 2.,
+    zoomDeg: store.zoomDeg,
     instant: true,
   });
 }
-  
-useWtmlLoader(prop.wtmlUrl, {
-  onNewLayer: onFirstLayerLoad,
-  goTo: false,
-});
+
+if (prop.wtmlUrl) {
+  useWtmlLoader(prop.wtmlUrl, {
+    onNewLayer: onFirstLayerLoad,
+    goTo: false,
+  });
+} else if (prop.imageset) {
+  layer.value = prop.imageset;
+  onFirstLayerLoad(prop.imageset);
+}
 
 const { angle, offsetX, offsetY, scale: imagesetScale, originalLayerSettings } = useImageSetManipulation(layer,true);
 
@@ -139,6 +148,23 @@ watch(opacity, (newOpacity) => {
     layer.value.set_opacity(newOpacity);
   }
 });
+
+watch(() => prop.imageset, (newImageset) => {
+  if (newImageset) {
+    layer.value = newImageset;
+    onFirstLayerLoad(newImageset);
+  }
+});
+
+watch(() => prop.wtmlUrl, (newWtmlUrl) => {
+  if (newWtmlUrl) {
+    useWtmlLoader(newWtmlUrl, {
+      onNewLayer: onFirstLayerLoad,
+      goTo: false,
+    });
+  }
+});
+
 </script>
 
 <style>

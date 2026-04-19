@@ -26,13 +26,15 @@
               @activate="toggleSheet"
             >
             </icon-button>
-            <drop-target />
+            <drop-target 
+              @imageset-loaded="(layer) => imagesetToEdit = layer"
+            />
           </div>
           <div id="center-buttons">
           </div>
           <div id="right-buttons">
             <ImagesetPositioner
-              wtml-url="./start.wtml"
+              :imageset="imagesetToEdit"
             />
           </div>
         </div>
@@ -82,13 +84,14 @@ import { GotoRADecZoomParams, engineStore } from "@wwtelescope/engine-pinia";
 import { BackgroundImageset, skyBackgroundImagesets, supportsTouchscreen, blurActiveElement, useWWTKeyboardControls, WWTEngineStore, CreditLogos, IconButton } from "@cosmicds/vue-toolkit";
 import { useDisplay } from "vuetify";
 import { D2R, R2D, H2D, R2H, H2R, D2H  } from "@wwtelescope/astro";
-import { AstroCalc, WWTControl, SpaceTimeController, Settings } from "@wwtelescope/engine";
+import { AstroCalc, WWTControl, SpaceTimeController, Settings, ImageSetLayer } from "@wwtelescope/engine";
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
 
 import ImagesetPositioner from "./components/ImagesetPositioner.vue";
 import DropTarget from "./components/DropImageToImageset.vue";
 
 import { watchWwtContainerSize } from "./composables/wwtContainerSize";
+import { layer } from "@fortawesome/fontawesome-svg-core";
 // watchWwtContainerSize('.wwtelescope-component', '#main-content');
 
 type SheetType = "text" | "video";
@@ -135,6 +138,7 @@ function toggleSheet() {
   }
 }
 
+const imagesetToEdit = ref<ImageSetLayer | null>(null);
 
 onMounted(() => {
   store.waitForReady().then(async () => {

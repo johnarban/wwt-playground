@@ -48,6 +48,11 @@ const props = withDefaults(defineProps<Props>(), {
   multiple: false,
 });
 
+
+const emit = defineEmits<{
+  'imageset-loaded': [layer: ImageSetLayer]
+}>();
+
 import { useImagesetLoader } from '@/composables/useWtmlLoader';
 const imagesetLayer = ref<ImageSetLayer | null>(null);
   
@@ -65,25 +70,29 @@ const R2D = 180 / Math.PI;
 function onImageLoad(image: HTMLImageElement, name: string) {
   const width = image.naturalWidth;
   const height = image.naturalHeight;
+  console.log('Image loaded:', { width, height });
   const fov = getFov();
+  console.log('Current FOV:', fov);
   const options: CreateStudyImagesetOptions = {
     raDeg: store.raRad * R2D, 
     decDeg: store.decRad * R2D,
     rotationDeg: -store.rollRad * R2D,
-    baseTileDegrees: fov / Math.max(width, height) / 2.0,
+    baseTileDegrees: fov / Math.max(width, height) / 1.5,
     name: name,
     creditsText: 'Uploaded Image',
     creditsUrl: 'localhost',
     offsetX: width / 2,
     offsetY: -height / 2,
   };
-  
+  console.log('Creating imageset with options:', options);
   const iset = createStudyImageset(image.src, options);
   const loader = useImagesetLoader(iset);
   loader.ready.then((layer) => {
     imagesetLayer.value = layer;
     imagesetLayer.value?.set_enabled(true);
-    console.log(imagesetLayer.value, loader.imagesetLayer.value);
+    // console.log(imagesetLayer.value, loader.imagesetLayer.value);
+    emit('imageset-loaded', layer);
+    files.value = [];
   });
 }
 
@@ -137,6 +146,7 @@ function clearFiles() {
 #drop-zone.over {
   border-color: #007BFF;
   background-color: #E0F0FF;
+  transition: background-color 0.3s, border-color 0.3s;
 }
 #drop-zone.hasFiles {
   border-color: #28A745;

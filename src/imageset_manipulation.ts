@@ -90,6 +90,9 @@ export interface CreateStudyImagesetOptions {
   creditsUrl?: string,
 }
 export function createStudyImageset(url: string, options?: CreateStudyImagesetOptions): Imageset {
+  if (options?.baseTileDegrees === undefined) {
+    console.error('baseTileDegrees needs to be set. defaulting to 1');
+  }
   return Imageset.create(
     options?.name ?? 'test-imageset', // name: string,
     url, // url: string,
@@ -100,7 +103,7 @@ export function createStudyImageset(url: string, options?: CreateStudyImagesetOp
     0, // baseLevel: number,
     0, // levels: number,
     null, // unused_tileSize: null,
-    0.0004404218362, // baseTileDegrees: number,
+    options?.baseTileDegrees ?? 1., // baseTileDegrees: number,
     'png jpg jpeg', // extension: string,
     false, // bottomsUp: boolean,
     '', // quadTreeMap: string,
