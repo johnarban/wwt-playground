@@ -1,6 +1,6 @@
 import {ref, onMounted, watch} from "vue";
 import { engineStore } from "@wwtelescope/engine-pinia";
-import { Folder, Place, Imageset, ImageSetLayer } from "@wwtelescope/engine";
+import { Folder, Place, Imageset, ImageSetLayer, WWTControl } from "@wwtelescope/engine";
 
 
 interface WtmlLoaderOptions {
@@ -9,6 +9,81 @@ interface WtmlLoaderOptions {
   onNewFolder?: (folder: Folder) => void;
   onNewPlace?: (place: Place, index: number) => void;
   goTo?: ((iset: Imageset) => boolean) | ((iset: Imageset, index: number) => boolean) | boolean; 
+}
+
+
+export function useImagesetLoader(imageset: Imageset, options?: { goTo?: boolean, onNewLayer?: WtmlLoaderOptions["onNewLayer"] }) {
+  
+  // const ready = ref(false);
+  const resolver = ref<((value: ImageSetLayer) => void) | null>(null);
+  const ready = new Promise<ImageSetLayer>((resolve) => {
+    resolver.value = resolve;
+  });
+  
+
+  const imagesetLayer = ref<ImageSetLayer | null>(null);
+  const opacity = ref(1);  
+  const store = engineStore();
+
+
+  store.waitForReady().then(async () => {
+    const iset = WWTControl.addImageSetToRepository(imageset);
+    if (imageset === null) {
+      console.warn("provided imageset is null");
+      return;
+    };
+    
+    try {
+      imagesetLayer.value = await store.addImageSetLayer({
+        url: iset.get_url(),
+        mode: "autodetect",
+        name: iset.get_name(),
+        goto: options?.goTo ?? false,
+      });
+    } catch (error) {
+      console.error("Failed to load imageset from", error, iset);
+      return;
+    };
+    
+    if (options?.onNewLayer) options.onNewLayer(imagesetLayer.value, 0);
+   
+    resolver.value?.(imagesetLayer.value);
+    
+  });
+
+  
+  
+  
+  const show = () => {
+    if (!imagesetLayer.value) {
+      console.warn(`No layer found for place with name ${name}`);
+      return;
+    }
+    if (!imagesetLayer.value.get_enabled()) imagesetLayer.value.set_enabled(true);
+    imagesetLayer.value.set_opacity(opacity.value);
+  };
+  
+  const hide = () => {
+    if (!imagesetLayer.value) return;
+    imagesetLayer.value.set_opacity(0);
+  };
+    
+  watch(opacity, (newOpacities) => {
+    if (imagesetLayer.value) {
+      imagesetLayer.value.set_opacity(newOpacities);
+    }
+  });
+  
+  return {
+    ready,
+    imageset,
+    imagesetLayer,
+    show,
+    hide,
+    opacity
+  };
+    
+    
 }
 
 /**
@@ -217,3 +292,5 @@ export function useWtmlLoader(wtmlUrl: string, options?: WtmlLoaderOptions) {
     
     
 }
+
+

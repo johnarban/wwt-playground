@@ -26,6 +26,7 @@
               @activate="toggleSheet"
             >
             </icon-button>
+            <drop-target />
           </div>
           <div id="center-buttons">
           </div>
@@ -85,6 +86,7 @@ import { AstroCalc, WWTControl, SpaceTimeController, Settings } from "@wwtelesco
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
 
 import ImagesetPositioner from "./components/ImagesetPositioner.vue";
+import DropTarget from "./components/DropImageToImageset.vue";
 
 import { watchWwtContainerSize } from "./composables/wwtContainerSize";
 // watchWwtContainerSize('.wwtelescope-component', '#main-content');
