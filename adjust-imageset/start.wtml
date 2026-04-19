@@ -15,7 +15,7 @@
         <ForegroundImageSet>
             <ImageSet DataSetType="Sky"
                 BandPass="Visible"
-                Url="./IC_5332_I_Ha_m2002.jpeg"
+                Url="https://johnarban.github.io/wwt-playground/adjust-imageset/IC_5332_I_Ha_m2002.jpeg"
                 TileLevels="0"
                 WidthFactor="2"
                 Rotation="-0.1972222055"
