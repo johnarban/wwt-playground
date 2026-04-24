@@ -43,6 +43,10 @@
         <!-- This block contains the elements (e.g. the project icons) displayed along the bottom of the screen -->
 
         <div id="bottom-content">
+          <SimbadResolver
+            :goto="true"
+          />
+            
           <div
             v-if="!smallSize"
             id="body-logos"
@@ -92,6 +96,8 @@ import DropTarget from "./components/DropImageToImageset.vue";
 
 import { watchWwtContainerSize } from "./composables/wwtContainerSize";
 import { layer } from "@fortawesome/fontawesome-svg-core";
+import { sesameNameResolver } from "./name_resolution";
+import SimbadResolver from "./components/SimbadResolver.vue";
 // watchWwtContainerSize('.wwtelescope-component', '#main-content');
 
 type SheetType = "text" | "video";
@@ -292,7 +298,7 @@ and remember, position:absolute is still a positioned parent, so children can be
   display: flex;
   flex-direction: column;
   pointer-events: none;
-  align-items: center;
+  align-items: stretch;
   gap: 5px;
 }
 
