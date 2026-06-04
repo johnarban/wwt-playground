@@ -13,6 +13,12 @@
 
 
       <!-- This contains the splash screen content -->
+      <SplashScreen
+        v-model="showSplashScreen"
+        :accent-color="accentColor"
+        :highlight-color="accentColor2"
+        :loaded="!isLoading"
+      />
     
 
       <!-- This block contains the elements (e.g. icon buttons displayed at/near the top of the screen -->
@@ -59,6 +65,8 @@
         </div>
       </div>
     </div>
+    <!-- Degrade gracefully if WebGL2 is unavailable. -->
+    <WebGlTest @webgl2-disabled="webglDisabled = true" />
     <div
       v-show="sheet === 'text'"
       id="bottom-drawer"
@@ -86,7 +94,10 @@ import { D2R, R2D, H2D, R2H, H2R, D2H  } from "@wwtelescope/astro";
 import { AstroCalc, WWTControl, SpaceTimeController, Settings } from "@wwtelescope/engine";
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
 
-import { watchWwtContainerSize } from "./composables/wwtContainerSize";
+/* local components and composables */
+import WebGlTest from "./components/WebGlTest.vue";
+import SplashScreen from "./components/SplashScreen.vue";
+import { watchWwtContainerSize } from "./utils/wwtContainerSize.ts";
 // watchWwtContainerSize('.wwtelescope-component', '#main-content');
 
 type SheetType = "text" | "video";
@@ -115,8 +126,8 @@ const props = withDefaults(defineProps<WwtPlaygroundProps>(), {
   }
 });
 
-const splash = new URLSearchParams(window.location.search).get("splash")?.toLowerCase() !== "false";
-const showSplashScreen = ref(splash);
+const webglDisabled = ref(false);
+const showSplashScreen = ref(true);
 const backgroundImagesets = reactive<BackgroundImageset[]>([]);
 const sheet = ref<SheetType | null>(null);
 const layersLoaded = ref(false);
@@ -134,6 +145,15 @@ function toggleSheet() {
 }
 
 onMounted(() => {
+  // Boilerplate to disable WWT and let the WebGlTest warning show if WebGL2 is not supported.
+  if (webglDisabled.value) {
+    showSplashScreen.value = false;
+    // @ts-expect-error `canvas` is defined
+    WWTControl.singleton.canvas.setAttribute("hidden", "true");
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    WWTControl.singleton.renderOneFrame = function () {};
+    return;
+  }
   store.waitForReady().then(async () => {
     skyBackgroundImagesets.forEach(iset => backgroundImagesets.push(iset));
     store.gotoRADecZoom({
@@ -219,7 +239,7 @@ If any of those happen, the ResizeObserver composable may be needed again to pus
   right: 0;
   // The composable sets the host element's inline width/height from #main-content.
   transition: height 0.2s ease-in-out;
-  opacity: 0.5;
+  opacity: 1;
 }
 
 /*
@@ -248,7 +268,10 @@ and remember, position:absolute is still a positioned parent, so children can be
   justify-content: space-between; // pushes top and bottom content apart
 }
 
-// moved modal content to Loader.vue
+#wwt-overlay > * {
+  // give each overlay child its own stacking context, so they layer in DOM order
+  isolation: isolate;
+}
 
 #top-content {
   width: 100%; // 100% of the overlay less the padding
@@ -303,6 +326,7 @@ and remember, position:absolute is still a positioned parent, so children can be
   border-radius: .025rem;
 }
 
+// Add the `layout-debug` class to #app to outline the overlay regions.
 .layout-debug {
   #main-content {
     border: 2px solid red;
