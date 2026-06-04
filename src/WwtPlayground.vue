@@ -2,6 +2,7 @@
   <v-app
     id="app"
     :style="cssVars"
+    :class="[smallSize ? 'app-is-small' : '', isLandscape ? 'app-is-landscape' : '']"
   >
     <div
       id="main-content"
@@ -22,14 +23,19 @@
     
 
       <!-- This block contains the elements (e.g. icon buttons displayed at/near the top of the screen -->
-      <div id="wwt-overlay">
+      <!-- Overlay: everything that sits on top of the WWT canvas. -->
+      <div
+        v-show="!showSplashScreen"
+        id="wwt-overlay"
+      >
         <div id="top-content">
           <div id="left-buttons">
             <icon-button
               icon="book-open"
               :color="buttonColor"
               tooltip-location="start"
-              @activate="toggleSheet"
+              title="toggle info sheet"
+              @activate="() => showInfoSheet = !showInfoSheet"
             >
             </icon-button>
           </div>
@@ -45,21 +51,21 @@
         </div>
 
 
-        <!-- This block contains the elements (e.g. the project icons) displayed along the bottom of the screen -->
-
+        <!-- Bottom row: project / funder logos. -->
         <div id="bottom-content">
           <div
-            v-if="!smallSize"
             id="body-logos"
+            :class="{ 'small-logos': smallSize }"
           >
             <CreditLogos
               :default-logos="['cosmicds', 'wwt']"
+              :logo-size="smallSize ? '1em' : '2.5em'"
               :extra-logos="[{
                 alt: 'Windowpane Production.',
                 href: 'https://johnarban.github.io',
                 src:'windowpane.png'
-              }
-              ] as never[]"
+              } as never
+              ]"
             />
           </div>
         </div>
@@ -107,6 +113,7 @@ import { ref, reactive, computed, onMounted, nextTick, watch, type Ref } from "v
 import { useDisplay } from "vuetify";
 import { VNavigationDrawer, VBottomSheet } from "vuetify/components";
 
+/* WWT imports */
 import { GotoRADecZoomParams, engineStore } from "@wwtelescope/engine-pinia";
 import { BackgroundImageset, skyBackgroundImagesets, supportsTouchscreen, blurActiveElement, useWWTKeyboardControls, useFullscreen, WWTEngineStore, CreditLogos, IconButton } from "@cosmicds/vue-toolkit";
 import { D2R, R2D, H2D, R2H, H2R, D2H  } from "@wwtelescope/astro";
@@ -126,11 +133,6 @@ export interface WwtPlaygroundProps {
   initialCameraParams?: CameraParams;
 }
 
-const store = engineStore();
-
-useWWTKeyboardControls(store);
-
-const touchscreen = supportsTouchscreen();
 const { smAndDown } = useDisplay();
 
 const props = withDefaults(defineProps<WwtPlaygroundProps>(), {
@@ -144,7 +146,20 @@ const props = withDefaults(defineProps<WwtPlaygroundProps>(), {
     };
   }
 });
+
+const store = engineStore();
+useWWTKeyboardControls(store);
+
+/* URL params: ?kiosk=true hides outbound links; ?splash=false skips the splash. */
+const searchParams = new URLSearchParams(window.location.search);
+const kiosk = searchParams.get("kiosk")?.toLowerCase() === "true";
+if (kiosk) {
+  document.body.classList.add("kiosk");
+}
+const fullscreen = useFullscreen();
+
 /* Device / screen characteristics */
+const touchscreen = supportsTouchscreen();
 const { width: viewportWidth, height: viewportHeight } = useDisplay();
 const smallSize = computed(() => smAndDown.value);
 const isVertical = computed(() => viewportHeight.value > viewportWidth.value);
@@ -174,6 +189,7 @@ onMounted(() => {
 
   store.waitForReady().then(async () => {
     skyBackgroundImagesets.forEach(iset => backgroundImagesets.push(iset));
+    // store.setBackgroundImageByName("SDSS");
     store.gotoRADecZoom({
       ...props.initialCameraParams,
       instant: true
@@ -211,6 +227,23 @@ const cssVars = computed(() => {
   // after `#bottom-drawer` takes its own height.
 }
 
+// while #app is a flex, the direct parent
+// is .v-application__wrap
+// this takes the size of its children
+// so we need to apply height definitions here
+// for a display with a side-panel this is generally
+// what we want
+.v-application__wrap {
+  flex-direction: row;
+  max-height: 100svh; // svh avoids mobile browser-chrome resize jitter
+}
+
+#app.app-is-small {
+  .v-application__wrap {
+    flex-direction: column;
+    max-height: 100svh;
+  }
+}
 
 #main-content {
   // This is the containing block for the absolutely positioned WWT host and overlay.
@@ -224,11 +257,24 @@ const cssVars = computed(() => {
   transition: height 0.1s ease-in-out;
 }
 
+#app.app-is-landscape {
+  .v-application__wrap {
+    flex-direction: row;
+    height: 100svh;
+    max-height: 100svh;
+  }
+
+  #main-content {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
 /* The WWT host is out of flow so its measured size does not affect #main-content. */
 // by using inset: 0, .wwttelescope-component fills #main-content and automatically resizes with it,
 // without needing a height width set. this allows main-content to be more freely sizes.
 /*
-WWT can size itself from CSS alone here because #main-content has a real layout size (from the flex layout in #app)
+WWT can size itself from CSS alone here because #main-content has a real layout size (from the flex layout in .v-application__wrap)
 and `.wwtelescope-component` is absolutely positioned to fill it.
 
 This breaks if #main-content stops having a definite size from layout. Common failure modes:
@@ -298,6 +344,7 @@ and remember, position:absolute is still a positioned parent, so children can be
   display: flex;
   flex-direction: column;
   gap: 10px;
+  align-items: flex-start;
 }
 
 #center-buttons {
@@ -314,6 +361,14 @@ and remember, position:absolute is still a positioned parent, so children can be
   height: auto;
 }
 
+// override the styles from the @cosmicds/vue-toolkit for the icon-button wrapper
+.icon-wrapper {
+    pointer-events: auto !important;
+    background-color: transparent !important;
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+}
+
 #bottom-content {
   display: flex;
   flex-direction: column;
@@ -326,10 +381,19 @@ and remember, position:absolute is still a positioned parent, so children can be
   #body-logos {
     align-self: flex-end;
   }
-  img[alt="Windowpane Production."] {
-    background-color: rgba(255, 255, 255, 0.3);
+
+  #body-logos.small-logos {
+    margin-top: 0.5em;
   }
+  // img[alt="Windowpane Production."] {
+  //   background-color: rgba(255, 255, 255, 0.3);
+  // }
 }
+
+#app.app-is-small #bottom-content {
+  padding: 0;
+}
+
 // yes, we do need the border radius defined twice. 
 // because we do not use overflow hidden. 
 // note - this setup will not work in vuetify 4
