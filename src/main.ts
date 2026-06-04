@@ -16,11 +16,13 @@ import {
   faBookOpen,
   faTimes,
   faVideo,
+  faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 
 library.add(faBookOpen);
 library.add(faTimes);
 library.add(faVideo);
+library.add(faXmark);
 
 import "./styles/main.css";
 

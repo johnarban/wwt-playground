@@ -67,29 +67,48 @@
     </div>
     <!-- Degrade gracefully if WebGL2 is unavailable. -->
     <WebGlTest @webgl2-disabled="webglDisabled = true" />
-    <div
-      v-show="sheet === 'text'"
-      id="bottom-drawer"
+
+    
+    <!-- using vuetify3 we need to set the width to otherwise navigation-drawer defaults to 256px width !inline-style!
+    can't use strings in component the vite-vuetify-plugin only auto-imports explicity <v-*> components
+    @Carifio24 - implement an info-sheet overlay with nav drawer and bottom sheet  -->
+    <component
+      :is="(isLandscape || !smallSize) ? VNavigationDrawer : VBottomSheet "
+      id="side-drawer"
+      v-model="showInfoSheet"
+      :class="[
+        (isLandscape || !smallSize) ? 'info-side' : 'info-bottom',
+        showInfoSheet ? 'side-drawer-open' : 'side-drawer-closed'
+      ]"
+      width=""
     >
-      <article class="pa-5">
-        <h1>Bottom Drawer</h1>
+      <InformationSheet
+        v-model="showInfoSheet"
+        :tab-color="accentColor"
+        text-color="#e6e6e6"
+      >
+        <!-- default slot renders under the "Information" heading -->
+        <div>
         <p>
-          Never gonna give you up.
+            The WWT Playground — a clean, reusable starting point for WorldWideTelescope based projects.
         </p>
         <p>
-          Never gonnna let you down.
+            This is built with Vue 3, Vuetify 3 on Vite 7 with TS 6. Hass LESS for styling
         </p>
-      </article>
     </div>
+      </InformationSheet>
+    </component>
   </v-app>
 </template>
 
 <script setup lang="ts">
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { ref, reactive, computed, onMounted, nextTick, watch, type Ref } from "vue";
-import { GotoRADecZoomParams, engineStore } from "@wwtelescope/engine-pinia";
-import { BackgroundImageset, skyBackgroundImagesets, supportsTouchscreen, blurActiveElement, useWWTKeyboardControls, WWTEngineStore, CreditLogos, IconButton } from "@cosmicds/vue-toolkit";
 import { useDisplay } from "vuetify";
+import { VNavigationDrawer, VBottomSheet } from "vuetify/components";
+
+import { GotoRADecZoomParams, engineStore } from "@wwtelescope/engine-pinia";
+import { BackgroundImageset, skyBackgroundImagesets, supportsTouchscreen, blurActiveElement, useWWTKeyboardControls, useFullscreen, WWTEngineStore, CreditLogos, IconButton } from "@cosmicds/vue-toolkit";
 import { D2R, R2D, H2D, R2H, H2R, D2H  } from "@wwtelescope/astro";
 import { AstroCalc, WWTControl, SpaceTimeController, Settings } from "@wwtelescope/engine";
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
@@ -97,10 +116,10 @@ import { SolarSystemObjects } from "@wwtelescope/engine-types";
 /* local components and composables */
 import WebGlTest from "./components/WebGlTest.vue";
 import SplashScreen from "./components/SplashScreen.vue";
+import InformationSheet from "./components/InformationSheet.vue";
 import { watchWwtContainerSize } from "./utils/wwtContainerSize.ts";
 // watchWwtContainerSize('.wwtelescope-component', '#main-content');
 
-type SheetType = "text" | "video";
 type CameraParams = Omit<GotoRADecZoomParams, "instant">;
 export interface WwtPlaygroundProps {
   wwtNamespace?: string;
@@ -125,24 +144,22 @@ const props = withDefaults(defineProps<WwtPlaygroundProps>(), {
     };
   }
 });
+/* Device / screen characteristics */
+const { width: viewportWidth, height: viewportHeight } = useDisplay();
+const smallSize = computed(() => smAndDown.value);
+const isVertical = computed(() => viewportHeight.value > viewportWidth.value);
+const isLandscape = computed(() => viewportWidth.value > viewportHeight.value * 1.25);
 
 const webglDisabled = ref(false);
 const showSplashScreen = ref(true);
 const backgroundImagesets = reactive<BackgroundImageset[]>([]);
-const sheet = ref<SheetType | null>(null);
+const showInfoSheet = ref(false);
 const layersLoaded = ref(false);
 const positionSet = ref(false);
-const accentColor = ref("#ffffff");
+const accentColor = ref("#306C9F");
+const accentColor2 = ref("#FC9954");
 const buttonColor = ref("#ffffff");
 
-function toggleSheet() {
-  console.log("toggling sheet");
-  if (sheet.value) {
-    sheet.value = null;
-  } else {
-    sheet.value = "text";
-  }
-}
 
 onMounted(() => {
   // Boilerplate to disable WWT and let the WebGlTest warning show if WebGL2 is not supported.
@@ -154,6 +171,7 @@ onMounted(() => {
     WWTControl.singleton.renderOneFrame = function () {};
     return;
   }
+
   store.waitForReady().then(async () => {
     skyBackgroundImagesets.forEach(iset => backgroundImagesets.push(iset));
     store.gotoRADecZoom({
@@ -170,18 +188,13 @@ const ready = computed(() => layersLoaded.value && positionSet.value);
 /* `isLoading` is a bit redundant here, but it could potentially have independent logic */
 const isLoading = computed(() => !ready.value);
 
-/* Properties related to device/screen characteristics */
-const smallSize = computed(() => smAndDown.value);
-
-
 /* This lets us inject component data into element CSS */
 const cssVars = computed(() => {
   return {
     "--accent-color": accentColor.value,
+    "--accent-color-2": accentColor2.value,
   };
 });
-
-
 </script>
 
 <style lang="less">
@@ -315,6 +328,45 @@ and remember, position:absolute is still a positioned parent, so children can be
   }
   img[alt="Windowpane Production."] {
     background-color: rgba(255, 255, 255, 0.3);
+  }
+}
+// yes, we do need the border radius defined twice. 
+// because we do not use overflow hidden. 
+// note - this setup will not work in vuetify 4
+#side-drawer {
+  --bottom-sheet-height: 34vh;
+  --side-panel-width: 36vw;
+  --side-panel-border-radius: 20px;
+  width: var(--side-panel-width);
+  border-top-right-radius: var(--side-panel-border-radius);
+  border-bottom-right-radius: var(--side-panel-border-radius);
+
+  // &.side-drawer-open {
+  //   transform: translateX(0);
+  // }
+  
+  > .v-navigation-drawer__content > .v-card {
+    border-top-right-radius: var(--side-panel-border-radius);
+    border-bottom-right-radius: var(--side-panel-border-radius);
+  }
+}
+
+
+#side-drawer.info-bottom {
+  width: auto; // reset the width
+  // borders are already set from original #side-drawer declaration
+  
+  > .v-overlay__content {
+    max-height: var(--bottom-sheet-height);
+  }
+  
+  &.side-drawer-open > .v-overlay__content {
+    height: var(--bottom-sheet-height); // remove to have it size with the content up to the max-height
+    
+    > .v-card {
+      border-top-left-radius: var(--side-panel-border-radius);
+      border-top-right-radius: var(--side-panel-border-radius);
+    }
   }
 }
 
