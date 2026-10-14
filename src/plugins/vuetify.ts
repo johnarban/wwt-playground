@@ -1,4 +1,5 @@
 import { createVuetify } from "vuetify";
+import { ClickOutside } from "vuetify/directives";
 import { aliases, mdi } from "vuetify/iconsets/mdi";
 
 // Translations provided by Vuetify
@@ -9,6 +10,8 @@ import "vuetify/styles";
 import "@mdi/font/css/materialdesignicons.css";
 
 export default createVuetify({
+  // prebuilt toolkit components (e.g. SpeedControl) look up v-click-outside at runtime
+  directives: { ClickOutside },
   // Breakpoint thresholds (V4 defaults; V3 values noted in comments)
   display: {
     thresholds: {

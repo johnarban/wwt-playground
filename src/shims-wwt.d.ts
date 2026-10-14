@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 
 import "@wwtelescope/engine"; // all types are available to typescript here, but i import them specifically below for clarity
-import type { Color, Vector3d } from "@wwtelescope/engine";
+import type { Color, Vector3d, FrameCallback } from "@wwtelescope/engine";
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
 
 declare module "@wwtelescope/engine" {
@@ -37,6 +37,19 @@ declare module "@wwtelescope/engine" {
     horizonToEquitorial(altAz: Coordinates, location: Coordinates, utc: Date): Coordinates;
   }
 
+  // in the engine since 7.36, but only typed on the ScriptInterface and the pinia store
+  interface WWTControl {
+    addFrameCallback(callback: FrameCallback): void;
+    removeFrameCallback(callback: FrameCallback): void;
+  }
+
+  // 7.41 declares the Matrix3d class but leaves these instance methods untyped
+  interface Matrix3d {
+    floatArray(): number[];
+    clone(): Matrix3d;
+    invert(): void;
+  }
+
   namespace Matrix3d {
     function multiplyMatrix(a: Matrix3d, b: Matrix3d): Matrix3d;
     function invertMatrix(m: Matrix3d): Matrix3d;
@@ -69,5 +82,10 @@ declare module "@wwtelescope/engine" {
 
   namespace SpaceTimeController {
     function get_location(): Coordinates;
+  }
+
+  interface Imageset {
+    // used by useWtml. returns a zoom (deg) that fits the image; never larger than currentZoom when given
+    _guessZoomSetting(currentZoom?: number): number;
   }
 }

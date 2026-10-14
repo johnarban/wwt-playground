@@ -18,36 +18,17 @@ export function renderOneFrame() {
 }
 
 const addedToFrame: (() => void)[] = [];
-let isRenderLoopPatched = false;
-function ensureRenderLoopPatched() {
-  if (isRenderLoopPatched) return;
-
-  const originalRenderOneFrame = WWTControl.singleton.renderOneFrame;
-  const newRenderOneFrame = function () {
-    originalRenderOneFrame.call(WWTControl.singleton);
-
-    const callbacks = addedToFrame.slice();
-    for (const cb of callbacks) {
-      try {
-        cb();
-      } catch (e) {
-        console.error("Error from added frame", e);
-      }
-    }
-  };
-  WWTControl.singleton.renderOneFrame = newRenderOneFrame;
-  isRenderLoopPatched = true;
-}
 
 /**
- * Add a callback that runs once per WorldWide Telescope render frame by patching
- * `WWTControl.singleton.renderOneFrame`.
+ * Add a callback that runs once per WorldWide Telescope render frame.
+ *
+ * Uses the engine's own frame callbacks (engine >= 7.36), which run at the end of
+ * `renderOneFrame`, after the matrices are restored -- the same point the old
+ * `renderOneFrame` patch called them. `store.addFrameCallback` is the same thing via pinia.
  *
  * If the same callback is provided again, it is skipped and a warning is logged.
  *
  * If `preRender` is `true`, one frame is rendered immediately before the callback is attached.
- *
- * Callback functions are added to a non-exported list: `addedToFrame`
  *
  * @param cb - The function to invoke after each call to `renderOneFrame`.
  * @param preRender - When `true`, renders one frame immediately before installing the callback.
@@ -59,11 +40,11 @@ export function addToWWTRenderLoop(cb: () => void, preRender?: boolean) {
     return;
   }
 
-  ensureRenderLoopPatched();
   // pre-render the frame before adding // default is undefined
   if (preRender) WWTControl.singleton.renderOneFrame();
 
   addedToFrame.push(cb);
+  WWTControl.singleton.addFrameCallback(cb);
 }
 
 export function removeFromWWTRenderLoop(cb: () => void) {
@@ -71,4 +52,5 @@ export function removeFromWWTRenderLoop(cb: () => void) {
   if (idx === -1) return;
   // begin removing items at idx, and remove just 1
   addedToFrame.splice(idx, 1);
+  WWTControl.singleton.removeFrameCallback(cb);
 }
