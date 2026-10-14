@@ -43,7 +43,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { CloseButton } from "@cosmicds/vue-toolkit";
+import CloseButton from "./CloseButton.vue";
 
 interface VideoProps {
   /** the URL of a video file (mp4, webm, ...).  */

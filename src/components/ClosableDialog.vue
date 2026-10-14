@@ -37,7 +37,7 @@
 import { computed, type PropType } from 'vue';
 import { VCard, type VDialog } from 'vuetify/components';
 import { makeVCardProps } from 'vuetify/lib/components/VCard/VCard.js';
-import { CloseButton } from "@cosmicds/vue-toolkit";
+import CloseButton from "./CloseButton.vue";
 const open = defineModel('modelValue', { type: Boolean, default: false });
 
 const props = defineProps({

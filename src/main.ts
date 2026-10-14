@@ -1,8 +1,5 @@
 import { createApp, type DirectiveBinding, type Plugin } from "vue";
 
-/* import the toolkit css first so that it can be easily overridden */
-import "@cosmicds/vue-toolkit/dist/vue-toolkit.css";
-
 import { FundingAcknowledgement, IconButton, CreditLogos } from "@cosmicds/vue-toolkit";
 import WwtPlayground from "./WwtPlayground.vue";
 import Loader from "./components/Loader.vue";
