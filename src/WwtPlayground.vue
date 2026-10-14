@@ -2,25 +2,25 @@
   <v-app
     id="app"
     :style="cssVars"
-    :class="[smallSize ? 'app-is-small' : '', isLandscape ? 'app-is-landscape' : '']"
+    :class="[smallSize ? 'app-is-small' : '', sidePanel ? 'app-side-panel' : '']"
   >
-    <div
-      id="main-content"
-    >
-      <WorldWideTelescope
-        :wwt-namespace="wwtNamespace"
-      ></WorldWideTelescope>
+    <div id="main-content">
+      <WorldWideTelescope :wwt-namespace="wwtNamespace"></WorldWideTelescope>
       <wwt-loader v-model="isLoading" />
-
 
       <!-- This contains the splash screen content -->
       <SplashScreen
         v-model="showSplashScreen"
-        :accent-color="accentColor"
+        :color="accentColor"
         :highlight-color="accentColor2"
-        :loaded="!isLoading"
-      />
-    
+        fullscreen-on-small
+        :disabled="!ready"
+      >
+        <div class="splash-content">
+          <p>Welcome to the</p>
+          <p class="highlight">WWT Playground</p>
+        </div>
+      </SplashScreen>
 
       <!-- This block contains the elements (e.g. icon buttons displayed at/near the top of the screen -->
       <!-- Overlay: everything that sits on top of the WWT canvas. -->
@@ -33,14 +33,14 @@
             <icon-button
               icon="book-open"
               :color="buttonColor"
+              aria-label="toggle info sheet"
               tooltip-location="start"
               title="toggle info sheet"
-              @activate="() => showInfoSheet = !showInfoSheet"
+              @activate="() => (showInfoSheet = !showInfoSheet)"
             >
             </icon-button>
           </div>
-          <div id="center-buttons">
-          </div>
+          <div id="center-buttons"></div>
           <div id="right-buttons">
             <brightness-contrast
               element=".wwtelescope-component > canvas"
@@ -49,7 +49,6 @@
             />
           </div>
         </div>
-
 
         <!-- Bottom row: project / funder logos. -->
         <div id="bottom-content">
@@ -60,11 +59,12 @@
             <CreditLogos
               :default-logos="['cosmicds', 'wwt']"
               :logo-size="smallSize ? '1em' : '2.5em'"
-              :extra-logos="[{
-                alt: 'Windowpane Production.',
-                href: 'https://johnarban.github.io',
-                src:'windowpane.png'
-              } as never
+              :extra-logos="[
+                {
+                  alt: 'Windowpane Production.',
+                  href: 'https://johnarban.github.io',
+                  src: 'windowpane.png',
+                } as never,
               ]"
             />
           </div>
@@ -74,36 +74,34 @@
     <!-- Degrade gracefully if WebGL2 is unavailable. -->
     <WebGlTest @webgl2-disabled="webglDisabled = true" />
 
-    
-    <!-- using vuetify3 we need to set the width to otherwise navigation-drawer defaults to 256px width !inline-style!
-    can't use strings in component the vite-vuetify-plugin only auto-imports explicity <v-*> components
-    @Carifio24 - implement an info-sheet overlay with nav drawer and bottom sheet  -->
-    <component
-      :is="(isLandscape || !smallSize) ? VNavigationDrawer : VBottomSheet "
-      id="side-drawer"
-      v-model="showInfoSheet"
-      :class="[
-        (isLandscape || !smallSize) ? 'info-side' : 'info-bottom',
-        showInfoSheet ? 'side-drawer-open' : 'side-drawer-closed'
-      ]"
-      width=""
+    <!--
+    This contains the informational content that is displayed when the book icon is clicked.
+    It's an in-flow flex sibling of #main-content, so opening it shrinks the WWT view
+    (from the side normally, from the bottom on small screens) instead of covering it.
+  -->
+    <!-- #drawer is providing the positioning in the flex-layout -->
+    <div
+      v-show="!showSplashScreen"
+      id="drawer"
+      :class="[sidePanel ? 'info-side' : 'info-bottom', showInfoSheet ? 'drawer-open' : 'drawer-closed']"
     >
-      <InformationSheet
-        v-model="showInfoSheet"
-        :tab-color="accentColor"
-        text-color="#e6e6e6"
+      <tabbed-sheet
+        v-show="showInfoSheet"
+        id="side-panel-sheet"
+        v-focus-toggle="showInfoSheet"
+        align-tabs="start"
+        @close="showInfoSheet = false"
       >
-        <!-- default slot renders under the "Information" heading -->
-        <div>
-        <p>
-            The WWT Playground — a clean, reusable starting point for WorldWideTelescope based projects.
-        </p>
-        <p>
-            This is built with Vue 3, Vuetify 3 on Vite 7 with TS 6. Hass LESS for styling
-        </p>
+        <tab-page title="Information">
+          <p>The WWT Playground — a clean, reusable starting point for WorldWideTelescope based projects.</p>
+          <p>This is built with Vue 3, Vuetify 3 on Vite 7 with TS 6. Hass LESS for styling</p>
+        </tab-page>
+
+        <tab-page title="User Guide" value="user-guide">
+          <user-guide />
+        </tab-page>
+      </tabbed-sheet>
     </div>
-      </InformationSheet>
-    </component>
   </v-app>
 </template>
 
@@ -111,19 +109,30 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { ref, reactive, computed, onMounted, nextTick, watch, type Ref } from "vue";
 import { useDisplay } from "vuetify";
-import { VNavigationDrawer, VBottomSheet } from "vuetify/components";
 
 /* WWT imports */
 import { GotoRADecZoomParams, engineStore } from "@wwtelescope/engine-pinia";
-import { BackgroundImageset, skyBackgroundImagesets, supportsTouchscreen, blurActiveElement, useWWTKeyboardControls, useFullscreen, WWTEngineStore, CreditLogos, IconButton } from "@cosmicds/vue-toolkit";
-import { D2R, R2D, H2D, R2H, H2R, D2H  } from "@wwtelescope/astro";
+import {
+  BackgroundImageset,
+  skyBackgroundImagesets,
+  supportsTouchscreen,
+  blurActiveElement,
+  useWWTKeyboardControls,
+  useFullscreen,
+  WWTEngineStore,
+  CreditLogos,
+  IconButton,
+} from "@cosmicds/vue-toolkit";
+import { D2R, R2D, H2D, R2H, H2R, D2H } from "@wwtelescope/astro";
 import { AstroCalc, WWTControl, SpaceTimeController, Settings } from "@wwtelescope/engine";
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
 
 /* local components and composables */
 import WebGlTest from "./components/WebGlTest.vue";
 import SplashScreen from "./components/SplashScreen.vue";
-import InformationSheet from "./components/InformationSheet.vue";
+import TabbedSheet from "./components/TabbedSheet.vue";
+import TabPage from "./components/TabPage.vue";
+import UserGuide from "./components/UserGuide.vue";
 import { watchWwtContainerSize } from "./utils/wwtContainerSize.ts";
 // watchWwtContainerSize('.wwtelescope-component', '#main-content');
 
@@ -140,11 +149,11 @@ const props = withDefaults(defineProps<WwtPlaygroundProps>(), {
   initialCameraParams: () => {
     const galacticCenter = AstroCalc.galacticToJ2000(0, 0);
     return {
-      raRad: galacticCenter.RA * H2R ,
+      raRad: galacticCenter.RA * H2R,
       decRad: galacticCenter.dec * D2R,
-      zoomDeg: 360
+      zoomDeg: 360,
     };
-  }
+  },
 });
 
 const store = engineStore();
@@ -164,6 +173,9 @@ const { width: viewportWidth, height: viewportHeight } = useDisplay();
 const smallSize = computed(() => smAndDown.value);
 const isVertical = computed(() => viewportHeight.value > viewportWidth.value);
 const isLandscape = computed(() => viewportWidth.value > viewportHeight.value * 1.25);
+// show side panel if clearly landscape, or a large screen must be just not portrait (it can be barely landscape).
+// if we're even close to vertical on a small screen, push up instead of from the side.
+const sidePanel = computed(() => isLandscape.value || (!smallSize.value && !isVertical.value));
 
 const webglDisabled = ref(false);
 const showSplashScreen = ref(true);
@@ -175,25 +187,25 @@ const accentColor = ref("#306C9F");
 const accentColor2 = ref("#FC9954");
 const buttonColor = ref("#ffffff");
 
-
 onMounted(() => {
   // Boilerplate to disable WWT and let the WebGlTest warning show if WebGL2 is not supported.
   if (webglDisabled.value) {
     showSplashScreen.value = false;
     // @ts-expect-error `canvas` is defined
     WWTControl.singleton.canvas.setAttribute("hidden", "true");
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
     WWTControl.singleton.renderOneFrame = function () {};
     return;
   }
 
   store.waitForReady().then(async () => {
-    skyBackgroundImagesets.forEach(iset => backgroundImagesets.push(iset));
+    skyBackgroundImagesets.forEach((iset) => backgroundImagesets.push(iset));
     // store.setBackgroundImageByName("SDSS");
-    store.gotoRADecZoom({
-      ...props.initialCameraParams,
-      instant: true
-    }).then(() => positionSet.value = true);
+    store
+      .gotoRADecZoom({
+        ...props.initialCameraParams,
+        instant: true,
+      })
+      .then(() => (positionSet.value = true));
     // If there are layers to set up, do that here!
     layersLoaded.value = true;
   });
@@ -214,60 +226,47 @@ const cssVars = computed(() => {
 </script>
 
 <style lang="less">
-
 // #app is a column flex container with two children:
-// #main-content and #bottom-drawer.
+// #main-content and #drawer.
 // #main-content contains the WWT display and the overlay content.
 
-#app {
-  // Vuetify's root app element fills the viewport.
+html {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #000;
   overflow: hidden;
-  // Vuetify's root app element is a column flex layout 
-  // lets #main-content take the remaining height
-  // after `#bottom-drawer` takes its own height.
+
+  -ms-overflow-style: none;
+  // scrollbar-width: none;
 }
 
-// while #app is a flex, the direct parent
-// is .v-application__wrap
-// this takes the size of its children
-// so we need to apply height definitions here
-// for a display with a side-panel this is generally
-// what we want
-.v-application__wrap {
-  flex-direction: row;
-  max-height: 100svh; // svh avoids mobile browser-chrome resize jitter
+body {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
-#app.app-is-small {
-  .v-application__wrap {
-    flex-direction: column;
-    max-height: 100svh;
-  }
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 #main-content {
-  // This is the containing block for the absolutely positioned WWT host and overlay.
+  // containing block for the absolutely positioned WWT host and overlay
   position: relative;
-  display: block; // don't need to set width. block elements stretch to fill their container by default.
-  
-  // Its height is determined by the flex layout in `#app`.
-  flex: 1 0 auto;
+  display: block;
+  // shrinkable with no min-size floor, so an open drawer takes its share of the space
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
   overflow: hidden;
-
-  transition: height 0.1s ease-in-out;
-}
-
-#app.app-is-landscape {
-  .v-application__wrap {
-    flex-direction: row;
-    height: 100svh;
-    max-height: 100svh;
-  }
-
-  #main-content {
-    flex: 1 1 0;
-    min-width: 0;
-  }
 }
 
 /* The WWT host is out of flow so its measured size does not affect #main-content. */
@@ -301,6 +300,10 @@ If any of those happen, the ResizeObserver composable may be needed again to pus
   opacity: 1;
 }
 
+.wwtelescope-component > canvas {
+  display: block;
+}
+
 /*
 #wwt-overlay is positioned against #main-content, not the viewport.
 `position: absolute` makes it fill #main-content.
@@ -319,9 +322,11 @@ and remember, position:absolute is still a positioned parent, so children can be
   left: 0;
   bottom: 0;
   right: 0;
-  padding: 1rem;
+  padding-inline: 1rem;
+  padding-top: 1rem;
+  padding-bottom: 0.5rem;
   pointer-events: none;
-  
+
   display: flex;
   flex-direction: column;
   justify-content: space-between; // pushes top and bottom content apart
@@ -363,10 +368,10 @@ and remember, position:absolute is still a positioned parent, so children can be
 
 // override the styles from the @cosmicds/vue-toolkit for the icon-button wrapper
 .icon-wrapper {
-    pointer-events: auto !important;
-    background-color: transparent !important;
-    -webkit-backdrop-filter: blur(6px);
-    backdrop-filter: blur(6px);
+  pointer-events: auto !important;
+  background-color: transparent !important;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
 }
 
 #bottom-content {
@@ -394,52 +399,91 @@ and remember, position:absolute is still a positioned parent, so children can be
   padding: 0;
 }
 
-// yes, we do need the border radius defined twice. 
-// because we do not use overflow hidden. 
-// note - this setup will not work in vuetify 4
-#side-drawer {
-  --bottom-sheet-height: 34vh;
-  --side-panel-width: 36vw;
-  --side-panel-border-radius: 20px;
-  width: var(--side-panel-width);
-  border-top-right-radius: var(--side-panel-border-radius);
-  border-bottom-right-radius: var(--side-panel-border-radius);
+/** ====== Define our standard Side/Bottom panel layout
+The default DOM structure is basically
+<div #app>
+  <div .v-application__wrap>
+    <div #main-content>
+      <WorldWideTelescope />
+      <div #wwt-overlay />
+    </div>
+    <div #drawer />
+  </div>
+</div>
+======== */
 
-  // &.side-drawer-open {
-  //   transform: translateX(0);
-  // }
-  
-  > .v-navigation-drawer__content > .v-card {
-    border-top-right-radius: var(--side-panel-border-radius);
-    border-bottom-right-radius: var(--side-panel-border-radius);
+// Default is the column/bottom-panel layout; a side panel opts in with .app-side-panel
+#app > .v-application__wrap {
+  // default, but specify anyway
+  flex-direction: column;
+  max-height: 100svh;
+}
+
+#app.app-side-panel > .v-application__wrap {
+  flex-direction: row;
+}
+
+// side-panel layout: #drawer follows #main-content in the DOM,
+// so flipping the order is what puts the panel on the left of the view
+// order sets the order of the children of a flex container
+#app.app-side-panel {
+  #main-content {
+    order: 1; // on the right
+  }
+
+  #drawer {
+    order: 0; // on the left
   }
 }
 
+// in-flow flex sibling of #main-content, so opening it shrinks the WWT view
+// instead of covering it. Default is the bottom panel: full width, growing in height.
+#drawer {
+  flex: 0 0 auto;
+  overflow: hidden;
+  width: 100%;
+  height: 0;
+  border-radius: 5px 5px 0 0;
 
-#side-drawer.info-bottom {
-  width: auto; // reset the width
-  // borders are already set from original #side-drawer declaration
-  
-  > .v-overlay__content {
-    max-height: var(--bottom-sheet-height);
+  &.drawer-open {
+    height: 34%;
   }
-  
-  &.side-drawer-open > .v-overlay__content {
-    height: var(--bottom-sheet-height); // remove to have it size with the content up to the max-height
-    
-    > .v-card {
-      border-top-left-radius: var(--side-panel-border-radius);
-      border-top-right-radius: var(--side-panel-border-radius);
-    }
+}
+
+// side panel: full height, growing in width
+.app-side-panel #drawer {
+  width: 0;
+  height: 100%;
+  border-radius: 0 5px 5px 0;
+
+  &.drawer-open {
+    width: 34%;
   }
+}
+
+/** ===================== */
+
+// Basic text styling for the TabbedSheet's content
+// it is better to set in the main app than to set things in the component
+// since the component may end up being imported from the toolkit.
+.cds-info-sheet .tab-page {
+  h3 {
+    color: steelblue;
+  }
+
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
 }
 
 // From Sara Soueidan (https://www.sarasoueidan.com/blog/focus-indicators/) & Erik Kroes (https://www.erikkroes.nl/blog/the-universal-focus-state/)
-:focus-visible, .focus-visible, .v-selection-control--focus-visible .v-selection-control__input {
+:focus-visible,
+.focus-visible,
+.v-selection-control--focus-visible .v-selection-control__input {
   /* Keep this override outside Vuetify's layers so it wins without !important. */
   outline: 6px double white;
   box-shadow: 0 0 0 3px black;
-  border-radius: .025rem;
+  border-radius: 0.025rem;
 }
 
 // Add the `layout-debug` class to #app to outline the overlay regions.
@@ -460,7 +504,6 @@ and remember, position:absolute is still a positioned parent, so children can be
   #wwt-overlay {
     border: 3px solid aqua;
   }
-  
 }
 
 #bottom-drawer {
@@ -469,5 +512,4 @@ and remember, position:absolute is still a positioned parent, so children can be
   // flex: 0 0 200px;
   overflow: auto;
 }
-
 </style>

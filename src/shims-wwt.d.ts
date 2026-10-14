@@ -4,18 +4,16 @@ import "@wwtelescope/engine"; // all types are available to typescript here, but
 import type { Color, Vector3d } from "@wwtelescope/engine";
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
 
-
 declare module "@wwtelescope/engine" {
-    
   // this seems to be the write way to extend the class. do a normal import
-  // and ts will merge? this interface. idk really.   
-  interface RenderContext  {
-      readonly gl: WebGL2RenderingContext;
-      get_world(): Matrix3d;
-      get_view(): Matrix3d;
-      get_projection(): Matrix3d;
+  // and ts will merge? this interface. idk really.
+  interface RenderContext {
+    readonly gl: WebGL2RenderingContext;
+    get_world(): Matrix3d;
+    get_view(): Matrix3d;
+    get_projection(): Matrix3d;
   }
-  
+
   // this on the other hand is not exported at all, so we create the class declaration here
   export class SimpleLineList {
     addLine(pt1: Vector3d, pt2: Vector3d): void;
@@ -26,21 +24,18 @@ declare module "@wwtelescope/engine" {
     set_depthBuffered(buffered: boolean): void;
     clear(): void;
   }
-  
-  
+
   export class AstroRaDec {
     RA: number;
     dec: number;
     distance: number;
     constructor(ra: number, dec: number, distance: number, shadow?: boolean, eclipsed?: boolean);
   }
-  
-  
-  interface Coordinates {   
+
+  interface Coordinates {
     raDecTo3d(ra: number, dec: number): Vector3d;
     horizonToEquitorial(altAz: Coordinates, location: Coordinates, utc: Date): Coordinates;
   }
-  
 
   namespace Matrix3d {
     function multiplyMatrix(a: Matrix3d, b: Matrix3d): Matrix3d;
@@ -50,7 +45,7 @@ declare module "@wwtelescope/engine" {
     function invert(): void;
     function floatArray(): number[];
   }
-  
+
   /**
    *  example use: console.log(AstroCalc.getPlanet(
       SpaceTimeController.utcToJulian(new Date()), // or use SpaceTimeController.get_jNow()
@@ -59,16 +54,20 @@ declare module "@wwtelescope/engine" {
     ));
    */
   namespace AstroCalc {
-    function getPlanet(jDate: number, planetName: SolarSystemObjects, lat: number, lng: number, height: number): AstroRaDec;
+    function getPlanet(
+      jDate: number,
+      planetName: SolarSystemObjects,
+      lat: number,
+      lng: number,
+      height: number,
+    ): AstroRaDec;
     function galacticToJ2000(l: number, b: number): AstroRaDec;
     function eclipticToJ2000(l: number, b: number): AstroRaDec;
     function j2000ToGalactic(ra: number, dec: number): AstroRaDec; // l is on RA, and b is on dec
     function j2000ToEcliptic(ra: number, dec: number): AstroRaDec; // l is on RA, and b is on dec
   }
-  
+
   namespace SpaceTimeController {
     function get_location(): Coordinates;
   }
-  
-
-};
+}

@@ -36,9 +36,18 @@ export default defineConfig({
     exclude: [
       'vuetify',
     ],
+    // a yarn-linked package is not pre-bundled by default, so its UMD entry would be served raw
+    include: [
+      '@wwtelescope/engine',
+      '@wwtelescope/engine-pinia',
+    ],
   },
   define: { 'process.env': {} },
   resolve: {
+    // i don't know if this is standard. but toolkit package.json has the es modules on the "module" field
+    // and at least for local development, vites needs to check module first. check here if it all
+    // blows up once we start using the vue-toolkit from npm
+    mainFields: ['module', 'browser'],
     alias: {
       '@': fileURLToPath(new URL('src', import.meta.url)),
     },

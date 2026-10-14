@@ -1,12 +1,11 @@
 <template>
   <fieldset id="brightness-contrast-fieldset">
-    <legend>
-      Brightness/Contrast
-    </legend>
-    <label>
+    <legend>Brightness/Contrast</legend>
+    <div>
       Brightness
-      <v-slider 
+      <v-slider
         v-model="brightness"
+        aria-label="Brightness"
         type="number"
         min="0"
         max="6"
@@ -16,7 +15,8 @@
         <template #append>
           <v-text-field
             v-model="brightness"
-            style="width:fit-content; max-width:7ch;"
+            aria-label="Brightness value"
+            style="width: fit-content; max-width: 7ch"
             density="compact"
             type="number"
             variant="outlined"
@@ -24,11 +24,12 @@
           />
         </template>
       </v-slider>
-    </label>
-    <label>
+    </div>
+    <div>
       Contrast
-      <v-slider 
+      <v-slider
         v-model="contrast"
+        aria-label="Contrast"
         type="number"
         min="0.0"
         max="1.5"
@@ -38,7 +39,8 @@
         <template #append>
           <v-text-field
             v-model="contrast"
-            style="width:fit-content; max-width:7ch"
+            aria-label="Contrast value"
+            style="width: fit-content; max-width: 7ch"
             density="compact"
             type="number"
             variant="outlined"
@@ -46,12 +48,12 @@
           />
         </template>
       </v-slider>
-    </label>
+    </div>
   </fieldset>
 </template>
 
 <script setup lang="ts">
-import { ref, onBeforeUnmount, onMounted, watch } from 'vue';
+import { ref, onBeforeUnmount, onMounted, watch } from "vue";
 
 const brightness = ref<number>(1);
 const contrast = ref<number>(1);
@@ -89,8 +91,6 @@ function parseValues() {
   }
 }
 
-
-
 function setValues(brightness: number, contrast: number) {
   const el = getTargetElement();
   if (el) {
@@ -101,7 +101,7 @@ function setValues(brightness: number, contrast: number) {
   }
 }
 
-watch([brightness, contrast], ([b,c]) => setValues(b,c));
+watch([brightness, contrast], ([b, c]) => setValues(b, c));
 
 function initializeFilter() {
   const el = getTargetElement();
@@ -139,7 +139,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   observer?.disconnect();
 });
-
 </script>
 
 <style scoped>
@@ -148,7 +147,7 @@ fieldset {
 }
 fieldset > legend {
   padding: 0 0.5rem;
-} 
+}
 
 .filter-defs {
   position: absolute;

@@ -1,192 +1,246 @@
 <template>
   <v-overlay
-    id="splash-overlay"
+    class="splash-overlay"
     :model-value="showSplashScreen"
-    :scrim="true"
-    
-
+    :scrim="false"
     absolute
     :style="cssVars"
     transition="fade-transition"
   >
-    <focus-trap>
+    <focus-trap :active="showSplashScreen">
       <div
         id="splash-screen"
         v-click-outside="closeSplashScreen"
         :style="cssVars"
+        :class="{ 'is-fullscreen': props.fullscreenOnSmall }"
       >
         <div class="background">
           <div class="background-blur"></div>
         </div>
+        <slot />
+
         <div
-          id="first-splash-row"
+          v-if="!props.hideButton"
+          class="splash-cta"
         >
-          <font-awesome-icon
-            id="close-splash-button"
-            icon="xmark"
-            tabindex="0"
-            @click="closeSplashScreen"
-            @keyup.enter="closeSplashScreen"
-          />
-          <div
-            id="splash-screen-text"
-            class="mb-2"
-          >
-            <p>Welcome to the</p>
-            <p class="highlight">
-              WWT Playground
-            </p>
-          </div>
-        </div>
-
-        <!-- <SplashGesture /> -->
-
-        <div>
           <v-btn
             class="splash-get-started"
-            :color="accentColor"
-            :density="(xs || isLandscape) ? 'compact' : 'compact'"
-            :size="width < 250 ? 'large' : 'x-large'"
+            color="secondary"
             variant="elevated"
             rounded="lg"
+            tabindex="0"
+            :disabled="props.disabled"
             @click="closeSplashScreen"
-            @keyup.enter="closeSplashScreen"
           >
-            {{ loaded ? 'Get Started' : 'Loading...' }}
+            {{ props.loaded ? "Get Started" : "Loading..." }}
           </v-btn>
         </div>
 
-        <div id="splash-screen-acknowledgements">
-          <div id="splash-screen-logos">
+        <div class="splash-acknowledgements">
+          <slot name="credits">
+            <p class="splash-credits">
+              Built on the
+              <a
+                href="https://github.com/cosmicds/vue-ds-template"
+                target="_blank"
+                rel="noopener"
+              ><code>vue-ds-template</code></a>
+              and
+              <a
+                href="https://github.com/cosmicds/vue-toolkit"
+                target="_blank"
+                rel="noopener"
+              ><code>vue-toolkit</code></a>
+              from
+              <a
+                href="https://www.cosmicds.cfa.harvard.edu/"
+                target="_blank"
+                rel="noopener"
+              >Cosmic Data Stories</a>,
+              powered by
+              <a
+                href="https://www.worldwidetelescope.org/home/"
+                target="_blank"
+                rel="noopener"
+              >WorldWide Telescope</a>.
+            </p>
+          </slot>
+          <div class="splash-logos">
             <credit-logos
-              id="splash-screen-credit-logos"
-              logo-size="1em"
+              class="splash-credit-logos"
+              logo-size="clamp(22px, 4vmin, 60px)"
               :default-logos="['cosmicds', 'wwt']"
+              :extra-logos="windowpaneExtraLogo"
             />
           </div>
         </div>
+        <CloseButton
+          class="splash-close-button"
+          label="Close Splash Screen"
+          :disabled="props.disabled"
+          @click="closeSplashScreen"
+        />
       </div>
     </focus-trap>
   </v-overlay>
 </template>
 
-
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed } from "vue";
 import { FocusTrap } from "focus-trap-vue";
-import { useDisplay } from 'vuetify';
+import { CreditLogos } from "@cosmicds/vue-toolkit";
+import { CloseButton } from "@cosmicds/vue-toolkit";
 
-const {width, xs, height } = useDisplay();
-const isLandscape = computed(() => width.value > height.value * 1.25);
+const windowpaneExtraLogo = [
+  {
+    src: "windowpane.png",
+    href: "https://johnarban.github.io",
+    alt: "Windowpane Production.",
+    name: "windowpane",
+  },
+];
 
 export interface Props {
-  cssVars?: Record<string, string>;
-  accentColor?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  cssVars?: Record<string, any>;
+  color?: string;
   highlightColor?: string;
   loaded?: boolean;
+  /** an optional background image. this will go into a css url(<background>)
+   * If in public: ./background.jpg, if in src: @/assets/background.jpg
+   */
+  backgroundImage?: string;
+  /** hide the built-in "Get Started" button, e.g. when your own slot content has its own CTA */
+  hideButton?: boolean;
+  /** disable the close button and "Get Started" button, e.g. while the app isn't ready to be shown yet */
+  disabled?: boolean;
+  /** on a small screen ( < 310px wide), cover the
+   * whole viewport instead of floating as a bordered card */
+  fullscreenOnSmall?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   cssVars: () => ({}),
   loaded: true,
-  accentColor: 'white',
-  highlightColor: 'white',
+  color: "white",
+  highlightColor: "white",
+  disabled: false,
 });
 
-const cssVars = computed(() => ({
-  ...props.cssVars,
-  '--accent-color': props.accentColor,
-  '--highlight-color': props.highlightColor,
-}));
+const cssVars = computed(() => {
+  return {
+    ...props.cssVars,
+    "--accent-color": props.color,
+    "--background-image": props.backgroundImage ? `url("${props.backgroundImage}")` : "none",
+    "--background-opacity": props.backgroundImage ? 1 : 0.8,
+  };
+});
 
-const showSplashScreen = defineModel<boolean>({ default: false });
-const splash = new URLSearchParams(window.location.search).get("splash")?.toLowerCase() !== "false";
-if (!splash) {
-  showSplashScreen.value = false;
-}
+const emits = defineEmits(["close"]);
 
+const showSplashScreen = defineModel<boolean>({ default: true });
+
+// watch(() => props.loaded, (l) =>{
+//   if (l) {
+//     setTimeout( () => {
+//       showSplashScreen.value = false;
+//     }, 5000)
+//   }
+// })
 
 function closeSplashScreen() {
-  if (props.loaded) {
-    showSplashScreen.value = false;
-  }
+  if (props.disabled) return;
+  showSplashScreen.value = false;
+  emits("close");
 }
-
-
 </script>
 
-
-<style scoped lang="less">
-
-#splash-overlay {
+<style lang="less">
+.splash-overlay {
   align-items: center;
   justify-content: center;
-  font-size: 2em;
-  transition: width 0.5s, height 0.5s;
+  // fluid type/spacing
+  // https://piccalil.li/blog/fluid-typography-with-css-clamp/,
+  // https://www.kevinpowell.co/article/typographic-scale/. also see Scott
+  --scale: 1.3333; // perfect fourth
+  --fs-0: min(9vw, 6vh); // title / lead-in - .splash-overlay's font-size, inherited
+  --fs-1: calc(var(--fs-0) / var(--scale)); // description
+  --fs-2: calc(var(--fs-1) / var(--scale)); // button label
+  --fs-3: calc(var(--fs-2) / var(--scale));
+  --fs-4: calc(var(--fs-3) / var(--scale));
+  --fs-5: calc(var(--fs-4) / var(--scale)); // credits line
+  font-size: var(--fs-0);
+  transition:
+    width 0.5s,
+    height 0.5s;
 }
 
-#splash-overlay > :deep(.v-overlay__scrim) {
-  backdrop-filter: blur(15px);
-}
-
-:deep(.v-fade-transition-enter-active),
-:deep(.v-fade-transition-leave-active) {
+.v-fade-transition-enter-active,
+.v-fade-transition-leave-active {
   transition-duration: 6000ms !important;
 }
 
 #splash-screen {
   color: white;
   user-select: none;
-  contain: paint;
-  min-width: 200px;
-  min-width: 200px;
+  // https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/contain
+  contain: paint; // this is like a a super overflow: hidden
 
-  // @media (max-width: 699px) {
-  //   max-height: 80vh;
-  //   max-width: 90vw;
-  // }
-
-  // @media (min-width: 700px) {
-  //   max-height: 85vh;
-  //   max-width: min(70vw, 800px);
-    
-  // }
+  // one continuous curve from phone to desktop instead of a breakpoint jump -
+  // grows with the viewport, floored so it's never cramped, capped so it
+  // never sprawls on a big monitor
+  max-width: clamp(280px, 90vw, 640px);
+  max-height: clamp(320px, 85vh, 700px);
   --border-radius: 30px;
-
-
-  // Generic splash uses a neutral dark backdrop. Drop in a project image via
-  // `background-image` here if desired.
-  .background {
-    position: fixed;
-    inset: 0;
-    background-color: #06080f;
-    background-size: cover;
-    background-repeat: no-repeat;
-    contain: strict;
-    z-index: -1;
-  }
-
-  .background-blur {
-    backdrop-filter: blur(1px) saturate(2) brightness(0.4);
-    position: fixed;
-    inset: 0;
-    margin: 0;
-  }
+  --border-max: 6px;
+  --border-min: 2px;
+  --border-thickness: clamp(var(--border-min), 0.4vmax, var(--border-max));
 
   display: flex;
   flex-direction: column;
-  justify-content: space-around;
-  align-items: center;
-  padding-top: 2rem;
+  justify-content: center;
+  align-content: center;
+  gap: 0.4em;
+  padding-top: 1rem;
   padding-bottom: 1rem;
-  padding-inline: 2rem;
+  // shrinks toward 8px on a narrow phone instead of staying a flat 2rem -
+  --panel-padding-inline: clamp(8px, 2vw, 2rem);
+  padding-inline: var(--panel-padding-inline);
 
   border-radius: var(--border-radius);
-  border: min(1.2vw, 0.9vh) solid var(--highlight-color);
+  border: var(--border-thickness) solid var(--accent-color);
   overflow: auto;
-  font-family: "Highway Gothic Narrow", sans-serif;
+  // switch the fallback fonts to serif for debugging
+  font-family: "Highway Gothic Narrow", "Roboto", sans-serif;
+
+  .background {
+    position: fixed;
+    inset: 0;
+    background-color: black;
+    background-image: var(--background-image);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: var(--background-opacity);
+    // dims a background photo enough to keep text over it legible; has no
+    // visible effect on the plain black fallback
+    filter: brightness(0.7);
+    contain: strict;
+    z-index: -1;
+    // we do not need the border radius because of the contain: paint on the #splash-screen
+    // but if we did, we'd need to account for the border thickness since this border is nested inside the other
+    // border-radius: calc (var(--border-radius) - var(--border-thickness));
+  }
+
+  .background-blur {
+    backdrop-filter: blur(6px) saturate(1);
+    position: fixed;
+    inset: 0;
+    border-radius: var(--border-radius);
+  }
 
   div {
+    margin-inline: auto;
     text-align: center;
   }
 
@@ -195,95 +249,100 @@ function closeSplashScreen() {
   }
   // make a paragraph inside the div centered horizontally and vertically
   p {
-    font-weight: regular;
     vertical-align: middle;
+
+    font-size: var(--fs-1);
+    font-weight: normal;
+    line-height: 1.4;
   }
 
-  p.highlight {
-    color: var(--highlight-color);
+  // lead-in above the title, e.g. "Explore" before "THE NIGHT SKY" - same
+  // size as the title, differs only by weight
+  .splash-lead {
+    font-size: var(--fs-0);
+    line-height: inherit;
+    font-weight: normal;
+  }
+
+  // allow us to also highlight a <p> or a <span>
+  .highlight {
+    font-size: var(--fs-0);
+    line-height: inherit;
+    color: var(--accent-color);
     text-transform: uppercase;
     font-weight: bold;
   }
 
-
-  p.small {
-    font-size: 0.8em;
-    font-weight: bold;
+  // "brought to you by..." - placed above the logos, matching the fleet.
+  // named splash-credits, not "small" - this file is unscoped
+  .splash-credits {
+    font-size: var(--fs-4);
+    font-weight: normal;
+    margin-block: 0.4em;
   }
 
-  #first-splash-row {
-    width: 100%;
-  }
-
-  #close-splash-button {
+  .splash-close-button {
     position: absolute;
     top: 20px;
     right: 20px;
     text-align: end;
-    color: var(--button-color, white);
     font-size: min(5vw, 4vh);
     padding: 0.25rem;
     margin: -0.25rem;
-
-    &:hover {
-      cursor: pointer;
-    }
   }
 
-  #splash-screen-text {
-    // in the grid, the text is in the 2nd column
+  .splash-content {
     display: flex;
     flex-direction: column;
-    line-height: 1.5;
-
+    gap: 0.3em;
+    line-height: 1.3;
+    margin-top: 0.5em;
   }
 
   .splash-get-started {
     border: 2px solid white;
-    font-size: 0.5em;
+    font-size: var(--fs-2);
     font-weight: bold !important;
+    // override the vuetify passing to be responsive
+    padding-inline: 1.2em !important;
+    height: auto !important;
+    min-height: 2.2em !important;
   }
 
-  #splash-screen-guide {
-    margin-block: 1.5em;
-    // font-size: min(5vw, 4vh);
-    line-height: 140%;
-    width: 75%;
-
-    .v-col{
-      padding: 0;
-    }
-
-    .svg-inline--fa {
-      color:var(--accent-color);
-      margin: 0 10px;
-    }
+  .splash-acknowledgements {
+    font-size: var(--fs-0);
+    line-height: clamp(1rem, 2.2vmin, 1.6rem);
   }
 
-  #splash-screen-acknowledgements {
-    // margin-top: 3rem;
-    margin: clamp(0.5rem, 3vh, 3rem) auto;
-    font-size: 1em;
-    line-height: 1.2;
-    width: 80%;
-    width:fit-content;
-
-    @media only screen and (max-width: 600px) {
-      width: 80%;
-    }
+  // the logo row can't wrap (#icons-container below is nowrap), so on a
+  // narrow phone it's often wider than its box - flex + justify-content
+  // keeps it centered as it overflows; margin: auto doesn't, it just
+  // collapses to 0 and overflows to one side
+  .splash-logos {
+    display: flex;
+    justify-content: center;
   }
 
-  #splash-screen-credit-logos {
+  .splash-credit-logos {
+    // don't wrap the logos - if they don't fit then shrink them
+    // so we have to overrid #icons-container from CreditLogos
+    #icons-container {
+      white-space: nowrap;
+      width: fit-content;
+    }
+
     img {
-    height: 65px;
-    vertical-align: middle;
-    margin-inline: 0.5em;
+      vertical-align: middle;
+      margin-inline: 0.2em;
+      margin-block: 0.25em;
     }
 
-    @media only screen and (max-width: 600px) {
-      img {
-        height: 40px;
-      }
+    // size the CfA logo so that it's height matches the others
+    .logo-cfa img {
+      width: auto;
+      height: auto;
+      max-height: var(--logo-size);
+      max-width: 110px;
     }
 
     svg {
@@ -291,51 +350,38 @@ function closeSplashScreen() {
       height: 24px;
     }
   }
-}
 
-@media (max-height: 500px) {
-  #splash-screen {
-    // display: flex;
-    // flex-direction: column;
-    // max-width: 200vh;
-    // justify-content: center;
-    // align-items: center;
-    // gap: calc(0.5 * var(--default-line-height));
+  @media (max-height: 500px) {
     overflow: hidden;
 
-  #splash-screen-text {
-    line-height: 1;
+    .splash-content {
+      line-height: 115%;
+    }
   }
 
-  .splash-get-started {
-    margin-bottom: 0;
+  @media (max-height: 310px) {
+    gap: 0.25em;
+    padding-block: 0.5rem;
+
+    // use this instead of v-if. the images still load though, but
+    // lets me get rid of the extra js.
+    .splash-acknowledgements {
+      display: none;
+    }
   }
 
-  #splash-screen-acknowledgements {
-    font-size: 1em;
-  }
-}
-
-}
-
-@media (max-height: 310px) {
-  #splash-screen {
-    width: 50vw;
-    padding-block: 10px;
-  }
-  #splash-screen-acknowledgements  {
-    display: none;
-  }
-}
-
-#artemis-large-logo {
-  height: 100px;
-}
-
-@media (min-width: 600px) {
-  #artemis-large-logo {
-    height: 200px;
+  &.is-fullscreen {
+    // set by the prop fullscreenOnSmall. only applies on small screens
+    // the 310px size is pretty useless, but also doesn't seem wholly necessary
+    // on vuetify's xs size <600px
+    @media (max-width: 310px) {
+      max-width: 100vw;
+      max-height: 100vh;
+      width: 100vw;
+      height: 100vh;
+      border-width: 6px;
+      border-radius: 0;
+    }
   }
 }
-
 </style>

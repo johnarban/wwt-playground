@@ -1,5 +1,5 @@
 import { WWTControl } from "@wwtelescope/engine";
-import type { engineStore } from '@wwtelescope/engine-pinia';
+import type { engineStore } from "@wwtelescope/engine-pinia";
 
 let wwtReady = false;
 export async function waitForWWTReady(store: ReturnType<typeof engineStore>): Promise<void> {
@@ -17,23 +17,21 @@ export function renderOneFrame() {
   WWTControl.singleton.renderOneFrame();
 }
 
-
-
-const addedToFrame: (()=>void)[] = [];
+const addedToFrame: (() => void)[] = [];
 let isRenderLoopPatched = false;
 function ensureRenderLoopPatched() {
   if (isRenderLoopPatched) return;
-  
+
   const originalRenderOneFrame = WWTControl.singleton.renderOneFrame;
-  const newRenderOneFrame = function() {
+  const newRenderOneFrame = function () {
     originalRenderOneFrame.call(WWTControl.singleton);
-    
+
     const callbacks = addedToFrame.slice();
     for (const cb of callbacks) {
       try {
         cb();
-      } catch(e) {
-        console.error('Error from added frame',e);
+      } catch (e) {
+        console.error("Error from added frame", e);
       }
     }
   };
@@ -48,7 +46,7 @@ function ensureRenderLoopPatched() {
  * If the same callback is provided again, it is skipped and a warning is logged.
  *
  * If `preRender` is `true`, one frame is rendered immediately before the callback is attached.
- * 
+ *
  * Callback functions are added to a non-exported list: `addedToFrame`
  *
  * @param cb - The function to invoke after each call to `renderOneFrame`.
@@ -60,14 +58,13 @@ export function addToWWTRenderLoop(cb: () => void, preRender?: boolean) {
     console.warn(`Attempted to add ${cb} already in render loop. Skipping`);
     return;
   }
-  
+
   ensureRenderLoopPatched();
   // pre-render the frame before adding // default is undefined
   if (preRender) WWTControl.singleton.renderOneFrame();
-  
+
   addedToFrame.push(cb);
 }
-
 
 export function removeFromWWTRenderLoop(cb: () => void) {
   const idx = addedToFrame.indexOf(cb);

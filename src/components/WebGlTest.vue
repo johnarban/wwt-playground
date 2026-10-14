@@ -1,6 +1,5 @@
-<!-- based of work from @Carifio24 -->
 <template>
-  <!-- WebGL2 not enabled dialog --> 
+  <!-- WebGL2 not enabled dialog -->
   <v-dialog
     v-model="showWebGL2Warning"
     class="error-dialog"
@@ -9,19 +8,17 @@
     <v-card>
       <div class="error-message">
         <p>
-          <strong>This app requires WebGL 2</strong> 
+          <strong>This app requires WebGL 2</strong>
         </p>
+        <p class="mt-2">Check your browser's settings and enable WebGL 2 ("graphics acceleration" on some browsers).</p>
         <p class="mt-2">
-          Check your browser's settings and enable WebGL 2 ("graphics acceleration" on some browsers).
-        </p> 
-        <p class="mt-2">
-          You can check whether your browser supports WebGL 2
-          and get assistance <a
+          You can check whether your browser supports WebGL 2 and get assistance
+          <a
             href="https://get.webgl.org/webgl2/"
             target="_blank"
             rel="noopener noreferrer"
           >here</a>.
-        </p> 
+        </p>
       </div>
     </v-card>
   </v-dialog>
@@ -46,7 +43,7 @@ if (showWebGL2Warning.value) {
 </script>
 
 <style scoped>
-error-dialog {
+.error-dialog {
   width: auto;
   height: auto;
   max-width: 500px;
@@ -59,7 +56,6 @@ error-dialog {
 
 .error-message {
   padding: 1rem;
-  border: 1px solid var(--comet-color);
   text-align: center;
   border-radius: 10px;
 }
