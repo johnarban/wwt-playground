@@ -1,0 +1,132 @@
+import { ref, watch, type Ref } from "vue";
+import { ImageSetLayer, Imageset, WWTControl } from "@wwtelescope/engine";
+import { ImageSetType, BandPass, ProjectionType } from "@wwtelescope/engine-types";
+import { removeTilesForImageset } from "./edit_tile_cache";
+
+export function useImageSetManipulation(layer: Ref<ImageSetLayer | null>, update = true) {
+  const rotationDegrees = ref(0);
+  const offsetX = ref(0);
+  const offsetY = ref(0);
+  const scale = ref(1);
+
+  const getOriginalLayerSettings = () => {
+    if (!layer.value) return null;
+    const iset = layer.value.get_imageSet() as Imageset;
+    return {
+      centerX: iset.get_centerX(),
+      centerY: iset.get_centerY(),
+      offsetX: iset.get_offsetX(),
+      offsetY: iset.get_offsetY(),
+      rotation: iset.get_rotation(),
+      baseDegreesPerTile: iset.get_baseTileDegrees(),
+    };
+  };
+  const originalLayerSettings = ref(getOriginalLayerSettings());
+
+  function updateImageSet() {
+    if (!update) return;
+    if (!layer.value || !originalLayerSettings.value) return;
+
+    const iset = layer.value.get_imageSet() as Imageset;
+
+    layer.value.version = (layer.value.version ?? 0) + 1;
+    layer.value.set_overrideDefaultLayer(true);
+
+    const originalSettings = originalLayerSettings.value;
+    const newCenterX = originalSettings.centerX + offsetX.value;
+    const newCenterY = originalSettings.centerY + offsetY.value;
+    const newBaseDegreesPerTile = originalSettings.baseDegreesPerTile * scale.value;
+    const newRotationDeg = originalSettings.rotation + rotationDegrees.value;
+
+    iset.set_baseTileDegrees(newBaseDegreesPerTile);
+    iset.set_centerX(newCenterX);
+    iset.set_centerY(newCenterY);
+    iset.set_rotation(newRotationDeg);
+    removeTilesForImageset(iset);
+
+    // i don't think we really need this
+    WWTControl.singleton.renderOneFrame();
+  }
+
+  // a new layer starts from its own settings, so the sliders go back to zero
+  watch(
+    () => layer.value,
+    () => {
+      originalLayerSettings.value = getOriginalLayerSettings();
+      rotationDegrees.value = 0;
+      offsetX.value = 0;
+      offsetY.value = 0;
+      scale.value = 1;
+    },
+  );
+  watch([rotationDegrees, offsetX, offsetY, scale], updateImageSet);
+
+  return {
+    angle: rotationDegrees,
+    offsetX,
+    offsetY,
+    scale,
+    originalLayerSettings,
+  };
+}
+
+// Util.getHashCode
+const getHashCode = function (target: string) {
+  let hash = 0;
+  if (!target.length) {
+    return hash;
+  }
+  for (let i = 0; i < target.length; i++) {
+    const c = target.charCodeAt(i);
+    hash = (hash << 5) - hash + c;
+  }
+  return hash;
+};
+
+export interface CreateStudyImagesetOptions {
+  raDeg?: number;
+  decDeg?: number;
+  rotationDeg?: number;
+  offsetX?: number;
+  offsetY?: number;
+  baseTileDegrees?: number;
+  name?: string;
+  creditsText?: string;
+  creditsUrl?: string;
+}
+export function createStudyImageset(url: string, options?: CreateStudyImagesetOptions): Imageset {
+  if (options?.baseTileDegrees === undefined) {
+    console.error("baseTileDegrees needs to be set. defaulting to 1");
+  }
+  return Imageset.create(
+    options?.name ?? "test-imageset", // name: string,
+    url, // url: string,
+    ImageSetType.sky, // dataSetType: ImageSetType,
+    BandPass.visible, // bandPass: BandPass,
+    ProjectionType.skyImage, // projection ProjectionType.healpix defined in imageset.js but not on the type, // ProjectionType,
+    getHashCode(url), // imageSetID: number,
+    0, // baseLevel: number,
+    0, // levels: number,
+    null, // unused_tileSize: null,
+    options?.baseTileDegrees ?? 1, // baseTileDegrees: number,
+    "png jpg jpeg", // extension: string,
+    false, // bottomsUp: boolean,
+    "", // quadTreeMap: string,
+    options?.raDeg ?? 0.0, // centerX: number,
+    options?.decDeg ?? 0.0, // centerY: number,
+    options?.rotationDeg ?? 0.0, // rotation: number,
+    false, // sparse: boolean,
+    "https://cdn.worldwidetelescope.org/wwtweb/thumbnail.aspx?name=test", // thumbnailUrl: string,
+    false, // defaultSet: boolean,
+    false, // elevationModel: boolean,
+    1, // widthFactor: number,
+    options?.offsetX ?? 0.0, // offsetX: number,
+    options?.offsetY ?? 0.0, // offsetY: number,
+    options?.creditsText ?? "No Credit Text Provided", // creditsText: string,
+    options?.creditsUrl ?? "No Credit Url Provided", // creditsUrl: string,
+    "", // demUrl: string,
+    "", // altUrl: string,
+    1.0, // meanRadius: number,
+    "Sky", // referenceFrame: string
+  );
+}

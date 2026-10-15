@@ -39,6 +39,7 @@
               @activate="() => (showInfoSheet = !showInfoSheet)"
             >
             </icon-button>
+            <drop-target @imageset-loaded="(layer) => (imagesetToEdit = layer)" />
           </div>
           <div id="center-buttons"></div>
           <div id="right-buttons">
@@ -47,11 +48,14 @@
               :initial-brightness="2.5"
               :initial-contrast="1"
             />
+            <ImagesetPositioner :imageset="imagesetToEdit" />
           </div>
         </div>
 
         <!-- Bottom row: project / funder logos. -->
         <div id="bottom-content">
+          <SimbadResolver :goto="true" />
+
           <div
             id="body-logos"
             :class="{ 'small-logos': smallSize }"
@@ -97,7 +101,10 @@
           <p>This is built with Vue 3, Vuetify 3 on Vite 7 with TS 6. Hass LESS for styling</p>
         </tab-page>
 
-        <tab-page title="User Guide" value="user-guide">
+        <tab-page
+          title="User Guide"
+          value="user-guide"
+        >
           <user-guide />
         </tab-page>
       </tabbed-sheet>
@@ -107,7 +114,7 @@
 
 <script setup lang="ts">
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ref, reactive, computed, onMounted, nextTick, watch, type Ref } from "vue";
+import { ref, reactive, computed, onMounted, nextTick, watch, shallowRef, type Ref } from "vue";
 import { useDisplay } from "vuetify";
 
 /* WWT imports */
@@ -124,7 +131,7 @@ import {
   IconButton,
 } from "@cosmicds/vue-toolkit";
 import { D2R, R2D, H2D, R2H, H2R, D2H } from "@wwtelescope/astro";
-import { AstroCalc, WWTControl, SpaceTimeController, Settings } from "@wwtelescope/engine";
+import { AstroCalc, WWTControl, SpaceTimeController, Settings, type ImageSetLayer } from "@wwtelescope/engine";
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
 
 /* local components and composables */
@@ -133,6 +140,9 @@ import SplashScreen from "./components/SplashScreen.vue";
 import TabbedSheet from "./components/TabbedSheet.vue";
 import TabPage from "./components/TabPage.vue";
 import UserGuide from "./components/UserGuide.vue";
+import ImagesetPositioner from "./components/ImagesetPositioner.vue";
+import DropTarget from "./components/DropImageToImageset.vue";
+import SimbadResolver from "./components/SimbadResolver.vue";
 import { watchWwtContainerSize } from "./utils/wwtContainerSize.ts";
 // watchWwtContainerSize('.wwtelescope-component', '#main-content');
 
@@ -186,6 +196,8 @@ const positionSet = ref(false);
 const accentColor = ref("#306C9F");
 const accentColor2 = ref("#FC9954");
 const buttonColor = ref("#ffffff");
+
+const imagesetToEdit = shallowRef<ImageSetLayer | null>(null);
 
 onMounted(() => {
   // Boilerplate to disable WWT and let the WebGlTest warning show if WebGL2 is not supported.
@@ -378,7 +390,7 @@ and remember, position:absolute is still a positioned parent, so children can be
   display: flex;
   flex-direction: column;
   pointer-events: none;
-  align-items: center;
+  align-items: stretch;
   gap: 5px;
 }
 

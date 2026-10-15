@@ -88,4 +88,23 @@ declare module "@wwtelescope/engine" {
     // used by useWtml. returns a zoom (deg) that fits the image; never larger than currentZoom when given
     _guessZoomSetting(currentZoom?: number): number;
   }
+
+  // used by edit_tile_cache.ts (adjust-imageset). 7.41 only types TileCache.clearCache; these exist at runtime
+  namespace TileCache {
+    let _tiles: Record<string, Tile>;
+    /** read-only lookup. (getTile creates the tile if it isn't cached) */
+    function getCachedTile(level: number, x: number, y: number, dataset: Imageset, parent: Tile | null): Tile | null;
+    function removeFromQueue(key: string, complete: boolean): void;
+  }
+
+  namespace RenderContext {
+    function getTilesXForLevel(imageset: Imageset, level: number): number;
+    function getTilesYForLevel(imageset: Imageset, level: number): number;
+  }
+
+  // not exported by the engine. just the parts we use
+  export interface Tile {
+    get_key(): string;
+    cleanUp(removeFromParent: boolean): void;
+  }
 }
