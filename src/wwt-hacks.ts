@@ -1,46 +1,56 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-dynamic-delete */
-import { ImageSetLayer, Imageset, TileCache, WWTControl, Tile, RenderContext } from "@wwtelescope/engine";
+import { WWTControl } from "@wwtelescope/engine";
+import type { engineStore } from "@wwtelescope/engine-pinia";
 
-import { TypedNumberArray } from "./types";
-
-
-export function bustImageSetTileCache(imageset: Imageset) {
-  const gl = WWTControl.singleton.renderContext.gl;
-  for (const key of Object.keys(TileCache._tiles)) {
-    if (key.startsWith(imageset.get_imageSetID().toString())) {
-      const tile = TileCache._tiles[key];
-      // get rid of the texture before deleting it from the cache
-      if (gl && tile && tile.texture2d) gl.deleteTexture(tile.texture2d);
-      delete TileCache._tiles[key];
-    }
+let wwtReady = false;
+export async function waitForWWTReady(store: ReturnType<typeof engineStore>): Promise<void> {
+  // by @Carifio24
+  if (wwtReady) {
+    return;
   }
+  return store.waitForReady().then(() => {
+    WWTControl.singleton.renderOneFrame();
+    wwtReady = true;
+  });
 }
 
-
-export function applyFitsSlice(layer: ImageSetLayer, fullDataUnit: TypedNumberArray, z: number): void {
-  const fi = layer.getFitsImage();
-  if (!fi) {
-    return;
-  }
-
-
-  const sizeZ = (fi.axisSize || [])[2] || 0;
-  if ((fi.numAxis || 0) < 3 || fi.sizeX < 1 || fi.sizeY < 1 || sizeZ < 1) {
-    console.error(`No slices on ImageSet ${layer.get_imageSet().get_name()}`);
-    return;
-  }
-
-  const pageSize = fi.sizeX * fi.sizeY;
-  const zIndex = Math.max(0, Math.min((z | 0), sizeZ - 1)); // clamp
-  const start = zIndex * pageSize;
-  const end = start + pageSize;
-  if (end > fullDataUnit.length) {
-    return;
-  }
-
-  fi.dataUnit = fullDataUnit.slice(start, end);
-  bustImageSetTileCache(layer.get_imageSet());
-  WWTControl.singleton.renderContext.drawImageSet(layer.get_imageSet(), 1);
+export function renderOneFrame() {
   WWTControl.singleton.renderOneFrame();
+}
+
+const addedToFrame: (() => void)[] = [];
+
+/**
+ * Add a callback that runs once per WorldWide Telescope render frame.
+ *
+ * Uses the engine's own frame callbacks (engine >= 7.36), which run at the end of
+ * `renderOneFrame`, after the matrices are restored -- the same point the old
+ * `renderOneFrame` patch called them. `store.addFrameCallback` is the same thing via pinia.
+ *
+ * If the same callback is provided again, it is skipped and a warning is logged.
+ *
+ * If `preRender` is `true`, one frame is rendered immediately before the callback is attached.
+ *
+ * @param cb - The function to invoke after each call to `renderOneFrame`.
+ * @param preRender - When `true`, renders one frame immediately before installing the callback.
+ */
+export function addToWWTRenderLoop(cb: () => void, preRender?: boolean) {
+  // don't add the same function more than once
+  if (addedToFrame.indexOf(cb) !== -1) {
+    console.warn(`Attempted to add ${cb} already in render loop. Skipping`);
+    return;
+  }
+
+  // pre-render the frame before adding // default is undefined
+  if (preRender) WWTControl.singleton.renderOneFrame();
+
+  addedToFrame.push(cb);
+  WWTControl.singleton.addFrameCallback(cb);
+}
+
+export function removeFromWWTRenderLoop(cb: () => void) {
+  const idx = addedToFrame.indexOf(cb);
+  if (idx === -1) return;
+  // begin removing items at idx, and remove just 1
+  addedToFrame.splice(idx, 1);
+  WWTControl.singleton.removeFrameCallback(cb);
 }
