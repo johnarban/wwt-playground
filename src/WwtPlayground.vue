@@ -97,7 +97,10 @@
           <p>This is built with Vue 3, Vuetify 3 on Vite 7 with TS 6. Hass LESS for styling</p>
         </tab-page>
 
-        <tab-page title="User Guide" value="user-guide">
+        <tab-page
+          title="User Guide"
+          value="user-guide"
+        >
           <user-guide />
         </tab-page>
       </tabbed-sheet>
@@ -125,7 +128,7 @@ import {
 } from "@cosmicds/vue-toolkit";
 import { D2R, R2D, H2D, R2H, H2R, D2H } from "@wwtelescope/astro";
 import { AstroCalc, WWTControl, SpaceTimeController, Settings } from "@wwtelescope/engine";
-import { SolarSystemObjects } from "@wwtelescope/engine-types";
+import { SolarSystemObjects, ScaleTypes } from "@wwtelescope/engine-types";
 
 /* local components and composables */
 import WebGlTest from "./components/WebGlTest.vue";
@@ -135,6 +138,7 @@ import TabPage from "./components/TabPage.vue";
 import UserGuide from "./components/UserGuide.vue";
 import { watchWwtContainerSize } from "./utils/wwtContainerSize.ts";
 // watchWwtContainerSize('.wwtelescope-component', '#main-content');
+import { useWtml } from "./composables/useWtmlLoader";
 
 type CameraParams = Omit<GotoRADecZoomParams, "instant">;
 export interface WwtPlaygroundProps {
@@ -187,6 +191,54 @@ const accentColor = ref("#306C9F");
 const accentColor2 = ref("#FC9954");
 const buttonColor = ref("#ffffff");
 
+// all five are the same ~12° x 9° MicroObservatory finder frame of the Pleiades.
+// FITS mode comes from the imageset's FileType; in FITS mode the engine re-reads the placement from the
+// FITS header and ignores the WTML's Center/Offset/Rotation/BaseDegreesPerTile
+const WTML_URLS = {
+  // fix.py's float32 copy of MicroObservatory's FITS, plain RA---TAN WCS
+  pleiades: "./Pleiades260211030923.wtml",
+  // MicroObservatory's original 16-bit integer FITS: the counts are stored with the 32768 offset applied but
+  // without a BZERO card (the engine assumes 32768)
+  "pleiades-int": "./Pleiades260211030923-int.wtml",
+  // astrometry.net's own WTML: a rendered JPEG (on nova.astrometry.net) placed by the WTML's geometry
+  "astrometry-jpeg": "./new-image-good-wtml.wtml",
+  // astrometry.net's FITS is RA---TAN-SIP. the engine takes any "-TAN" CTYPE as plain TAN (scale + rotation),
+  // dropping the SIP polynomials and the CD skew, so stars drift up to ~3 px (~3′) off toward the corners
+  "tan-sip": "./new-image-bad-wtml.wtml",
+  // the same FITS labeled FileType=".jpg": added as an ordinary image, and the browser can't decode FITS
+  // bytes, so nothing draws
+  "wrong-filetype": "./new-image.wtml",
+};
+type WtmlName = keyof typeof WTML_URLS;
+// ?wtml=<name> picks the example to load
+const wtmlParam = searchParams.get("wtml") ?? "";
+const WTML_NAME: WtmlName = Object.keys(WTML_URLS).includes(wtmlParam) ? (wtmlParam as WtmlName) : "pleiades";
+
+// one useWtml per example; only the picked one is loaded
+const wtmls = {} as Record<WtmlName, ReturnType<typeof useWtml>>;
+(Object.keys(WTML_URLS) as WtmlName[]).forEach((name) => {
+  wtmls[name] = useWtml(WTML_URLS[name], {
+    single: true,
+    autoload: false,
+    onLoad: ({ place, layer, fitsImage }) => {
+      layer.set_opacity(0.5);
+      if (fitsImage) {
+        layer.set_colorMapperName("viridis");
+        // in counts; the sky background is ~1210.
+        // raw, not physical: 7.41 compares physical pixel values against the cuts, so setImageScalePhysical
+        // saturates pleiades-int (BZERO 32768). the other FITS have BZERO 0, where raw == physical
+        layer.setImageScaleRaw(ScaleTypes.linear, 1220, 1255);
+      }
+      store.gotoRADecZoom({
+        raRad: place.get_RA() * H2R,
+        decRad: place.get_dec() * D2R,
+        zoomDeg: 100, // enough to frame the whole field
+        instant: true,
+      });
+    },
+  });
+});
+
 onMounted(() => {
   // Boilerplate to disable WWT and let the WebGlTest warning show if WebGL2 is not supported.
   if (webglDisabled.value) {
@@ -207,6 +259,7 @@ onMounted(() => {
       })
       .then(() => (positionSet.value = true));
     // If there are layers to set up, do that here!
+    wtmls[WTML_NAME].load();
     layersLoaded.value = true;
   });
 });
