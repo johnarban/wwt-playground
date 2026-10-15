@@ -89,3 +89,17 @@ declare module "@wwtelescope/engine" {
     _guessZoomSetting(currentZoom?: number): number;
   }
 }
+
+// used by src/load_hips_imagery.ts
+declare module "@wwtelescope/engine" {
+  // the JS has these, 7.41 doesn't type them (the constructor can't be added from here)
+  interface HipsProperties {
+    get_downloadComplete(): boolean;
+    /** a single slot, called once the properties (and a catalog's metadata) have downloaded. never called on failure */
+    setDownloadCompleteListener(listener: () => void): void;
+  }
+
+  interface Imageset {
+    set_hipsProperties(props: HipsProperties): HipsProperties;
+  }
+}

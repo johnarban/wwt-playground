@@ -39,6 +39,37 @@
               @activate="() => (showInfoSheet = !showInfoSheet)"
             >
             </icon-button>
+            <div id="hips-surveys">
+              <v-select
+                v-model="selectedSurvey"
+                :items="surveys.map((s, value) => ({ title: s.name, value }))"
+                :disabled="!surveysLoaded"
+                :loading="!surveysLoaded"
+                label="HiPS survey"
+                density="compact"
+                variant="outlined"
+                hide-details
+              />
+              <form
+                class="mt-2"
+                @submit.prevent="addSurvey"
+              >
+                <v-text-field
+                  v-model="hipsUrl"
+                  label="Add a HiPS by url"
+                  placeholder="https://alasky.cds.unistra.fr/Pan-STARRS/DR1/color-z-zg-g/"
+                  density="compact"
+                  variant="outlined"
+                  :error-messages="hipsUrlError"
+                  :disabled="!surveysLoaded"
+                  :loading="addingSurvey"
+                  append-inner-icon="mdi-plus"
+                  autocorrect="off"
+                  @click:append-inner="addSurvey"
+                  @keydown.stop
+                />
+              </form>
+            </div>
           </div>
           <div id="center-buttons"></div>
           <div id="right-buttons">
@@ -52,6 +83,27 @@
 
         <!-- Bottom row: project / funder logos. -->
         <div id="bottom-content">
+          <div id="hips-opacity">
+            <v-slider
+              v-model="opacity"
+              aria-label="Survey opacity"
+              prepend-icon="mdi-circle-opacity"
+              :min="0"
+              :max="1"
+              :step="0.01"
+              :disabled="!surveysLoaded"
+              density="compact"
+              hide-details
+            />
+            <a
+              v-if="currentSurvey?.credits"
+              class="text-caption"
+              :href="currentSurvey.creditsUrl || undefined"
+              target="_blank"
+              rel="noopener"
+              >{{ currentSurvey.credits }}</a
+            >
+          </div>
           <div
             id="body-logos"
             :class="{ 'small-logos': smallSize }"
@@ -97,7 +149,10 @@
           <p>This is built with Vue 3, Vuetify 3 on Vite 7 with TS 6. Hass LESS for styling</p>
         </tab-page>
 
-        <tab-page title="User Guide" value="user-guide">
+        <tab-page
+          title="User Guide"
+          value="user-guide"
+        >
           <user-guide />
         </tab-page>
       </tabbed-sheet>
@@ -107,7 +162,7 @@
 
 <script setup lang="ts">
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ref, reactive, computed, onMounted, nextTick, watch, type Ref } from "vue";
+import { ref, reactive, shallowReactive, computed, onMounted, nextTick, watch, type Ref } from "vue";
 import { useDisplay } from "vuetify";
 
 /* WWT imports */
@@ -124,7 +179,7 @@ import {
   IconButton,
 } from "@cosmicds/vue-toolkit";
 import { D2R, R2D, H2D, R2H, H2R, D2H } from "@wwtelescope/astro";
-import { AstroCalc, WWTControl, SpaceTimeController, Settings } from "@wwtelescope/engine";
+import { AstroCalc, WWTControl, SpaceTimeController, Settings, type ImageSetLayer } from "@wwtelescope/engine";
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
 
 /* local components and composables */
@@ -135,6 +190,8 @@ import TabPage from "./components/TabPage.vue";
 import UserGuide from "./components/UserGuide.vue";
 import { watchWwtContainerSize } from "./utils/wwtContainerSize.ts";
 // watchWwtContainerSize('.wwtelescope-component', '#main-content');
+import { useWtml } from "./composables/useWtmlLoader";
+import { loadHips } from "./load_hips_imagery";
 
 type CameraParams = Omit<GotoRADecZoomParams, "instant">;
 export interface WwtPlaygroundProps {
@@ -199,6 +256,8 @@ onMounted(() => {
 
   store.waitForReady().then(async () => {
     skyBackgroundImagesets.forEach((iset) => backgroundImagesets.push(iset));
+    store.applySetting(["showGrid", true]);
+    store.applySetting(["showGalacticGrid", true]);
     // store.setBackgroundImageByName("SDSS");
     store
       .gotoRADecZoom({
@@ -210,6 +269,73 @@ onMounted(() => {
     layersLoaded.value = true;
   });
 });
+
+/* HiPS surveys. the known ones come from a WTML with Projection="Healpix" (made with almagal/public/hips2wtml.py),
+the engine fetches each survey's `properties` itself. any other can be added by url with loadHips */
+interface HipsSurvey {
+  name: string;
+  credits: string;
+  creditsUrl: string;
+  layer: ImageSetLayer;
+}
+
+function toSurvey(layer: ImageSetLayer): HipsSurvey {
+  const iset = layer.get_imageSet();
+  return { name: iset.get_name(), credits: iset.get_creditsText(), creditsUrl: iset.get_creditsUrl(), layer };
+}
+
+const surveys = shallowReactive<HipsSurvey[]>([]);
+const selectedSurvey = ref(1); // 2MASS, what the branch showed
+const opacity = ref(1);
+const surveysLoaded = ref(false);
+const currentSurvey = computed(() => surveys[selectedSurvey.value]);
+
+function showSurvey(index: number) {
+  surveys.forEach((s, i) => s.layer.set_enabled(i === index));
+  surveys[index]?.layer.set_opacity(opacity.value);
+}
+
+// all the layers get added, only the selected one is enabled (disabled layers fetch no tiles)
+const surveysWtml = useWtml(new URL(`${import.meta.env.BASE_URL}hips_surveys.wtml`, document.baseURI).href, {
+  onLoad: ({ layer }) => layer.set_enabled(false),
+});
+surveysWtml.ready.then(() => {
+  // a place whose layer failed leaves a hole
+  surveys.push(...surveysWtml.imagesetLayers.filter((l) => l != null).map(toSurvey));
+  showSurvey(selectedSurvey.value);
+  surveysLoaded.value = true;
+});
+
+watch(selectedSurvey, showSurvey);
+watch(opacity, (o) => currentSurvey.value?.layer.set_opacity(o));
+
+const hipsUrl = ref("");
+const hipsUrlError = ref("");
+const addingSurvey = ref(false);
+
+/** add a HiPS survey from its service url (the folder holding `properties`) and show it */
+async function addSurvey() {
+  const url = hipsUrl.value.trim();
+  if (!url || addingSurvey.value) return;
+  hipsUrlError.value = "";
+  addingSurvey.value = true;
+  try {
+    const iset = await loadHips(url);
+    const layer = await store.addImageSetLayer({
+      url: iset.get_url(),
+      mode: "preloaded",
+      name: iset.get_name(),
+      goto: false,
+    });
+    surveys.push(toSurvey(layer));
+    selectedSurvey.value = surveys.length - 1;
+    hipsUrl.value = "";
+  } catch (e) {
+    hipsUrlError.value = (e as Error).message;
+  } finally {
+    addingSurvey.value = false;
+  }
+}
 
 const ready = computed(() => layersLoaded.value && positionSet.value);
 
@@ -380,6 +506,26 @@ and remember, position:absolute is still a positioned parent, so children can be
   pointer-events: none;
   align-items: center;
   gap: 5px;
+}
+
+#hips-surveys {
+  pointer-events: auto;
+  width: min(320px, calc(100vw - 2rem));
+  padding: 0.5rem;
+  border-radius: 5px;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+#hips-opacity {
+  pointer-events: auto;
+  width: min(50%, 400px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  .v-slider {
+    width: 100%;
+  }
 }
 
 #bottom-content {
