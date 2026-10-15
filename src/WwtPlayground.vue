@@ -118,11 +118,6 @@
           </div>
           <div id="center-buttons"></div>
           <div id="right-buttons">
-            <brightness-contrast
-              element=".wwtelescope-component > canvas"
-              :initial-brightness="2.5"
-              :initial-contrast="1"
-            />
             <orbital-elements-editor
               v-if="objectOrbitLayer && showElementsEditor"
               class="asteroid-panel orbital-editor-panel"
