@@ -4,6 +4,7 @@
 <head>
 	<meta charset="utf-8" />
 	<title>WWT Examples</title>
+	<script  src="./playground_preview.js"></script>
 </head>
 
 <body>
@@ -17,87 +18,26 @@
 	
 	<nav>
 		<ol>
-			<li class="project-card"> <!-- empty project -->
-				<details>
-					<summary>
-						<span>Empty Project</span>
-					</summary>
-					<div class="contain">
-						<div class="links">
-							<a href="./main" target="_blank" rel="noopener noreferrer">Project Page</a>
-							<a href="https://github.com/johnarban/wwt-playground/tree/main" target="_blank" rel="noopener noreferrer">GitHub Repo</a>
-						</div>
-						<article class="intro">
-							The blank WWT project demonstrates using WWT with <code>Vite</code> 
-							and merges (in an opinionated way) the linting that is default on 
-							the <code>vue-ds-template</code> and the defaults from a project created 
-							with <code>npx init vuetify</code>.
-						</article>
-						<iframe src="https://johnarban.github.io/wwt-playground/main">
-							I frame failed to load. Click to <a href="./main" target="_blank" rel="noopener noreferrer">view the empty example project</a>
-						</iframe>
-					</div>
-				</details>
-			</li>
-			<li class="project-card"> <!-- sphere-x-->
-				<details>
-					<summary>
-						<span>SPHERE-X All Sky True Crossfade</span>
-					</summary>
-					<div class="contain">
-						<div class="links">
-							<a href="./sphere-x" target="_blank" rel="noopener noreferrer">Project Page</a>
-							<a href="https://github.com/johnarban/wwt-playground/tree/sphere-x" target="_blank" rel="noopener noreferrer">GitHub Repo</a>
-						</div>
-						<article class="intro">
-							Demonstrates a true cross-fade using the SPHEREx all sky Star and Line emission images. 
-							by true cross-fade where the total opacity at the midpoint is 100%, as opposed to a linear cross-fade where in the middle the total opacity is 75% (100% - 50%&times;50%).
-						</article>
-						<iframe src="https://johnarban.github.io/wwt-playground/sphere-x">
-							I frame failed to load. Click to <a href="./sphere-x" target="_blank" rel="noopener noreferrer">view the SPHERE-X example project</a>
-						</iframe>
-					</div>
-				</details>
-			</li>
-			<li class="project-card"><!-- 3d fits-->
-				<details>
-					<summary>
-						<span>3D FITS cube w/ velocity slider</span>
-					</summary>
-					<div class="contain">
-						<div class="links">
-							<a href="./fits-example">Project Page</a>
-							<a href="https://github.com/johnarban/wwt-playground/tree/fits-example" target="_blank" rel="noopener noreferrer">GitHub Repo</a>
-						</div>
-						<article class="intro">
-							Demonstrate loading a 3D fits cube into WWT. This project uses a hack to trick the WWT engine into dispalying the appropriate data plane by manually paging through the FITS data. 
-							It only works for PPV oriented cubes, with a TAN projection, and really seems to need a properly formatted FITS header
-						</article>
-						<iframe src="https://johnarban.github.io/wwt-playground/fits-example">
-							I frame failed to load. Click to <a href="./fits-example">view the FITS example project</a>
-						</iframe>
-					</div>
-				</details>
-			</li>
-			<li class="project-card"><!-- test shader-->
-				<details>
-					<summary>
-						<span>Testing adding shaders</span>
-					</summary>
-					<div class="contain">
-						<div class="links">
-							<a href="./test-shader">Project Page</a>
-							<a href="https://github.com/johnarban/wwt-playground/tree/test-shader" target="_blank" rel="noopener noreferrer">GitHub Repo</a>
-						</div>
-						<article class="intro">
-							Test adding shaders to WWT. This will (or does) have an atmosphere shader. and maybe a ground image shader?
-						</article>
-						<iframe src="https://johnarban.github.io/wwt-playground/test-shader">
-							I frame failed to load. Click to <a href="./test-shader">view the FITS example project</a>
-						</iframe>
-					</div>
-				</details>
-			</li>
+			<wwt-preview project="main" title="Empty Project"> <!-- empty project -->
+				The blank WWT project demonstrates using WWT with <code>Vite</code> 
+				and merges (in an opinionated way) the linting that is default on 
+				the <code>vue-ds-template</code> and the defaults from a project created 
+				with <code>npx init vuetify</code>.
+			</wwt-preview>
+			<wwt-preview project="sphere-x" title="SPHERE-X All Sky True Crossfade">
+				Demonstrates a true cross-fade using the SPHEREx all sky Star and Line emission images. 
+				by true cross-fade where the total opacity at the midpoint is 100%, as opposed to a 
+				linear cross-fade where in the middle the total opacity is 75% (100% - 50%&times;50%).
+			</wwt-preview>
+			<wwt-preview project="fits-example" title="3D FITS cube w/ velocity slider">
+				Demonstrate loading a 3D fits cube into WWT. This project uses a hack to trick the WWT engine 
+				into dispalying the appropriate data plane by manually paging through the FITS data. 
+				It only works for PPV oriented cubes, with a TAN projection, and really seems to need a 
+				properly formatted FITS header
+			</wwt-preview>
+			<wwt-preview project="test-shader" title="Testing adding shaders">
+				Test adding shaders to WWT. This will (or does) have an atmosphere shader. and maybe a ground image shader?
+			</wwt-preview>
 		</ol>
 	</nav>
 	<aside>
@@ -136,77 +76,6 @@ ol {
 	margin: 0;
 	padding: 0;
 
-}
-
-li.project-card {
-	list-style-type: none;
-	padding: var(--space);
-	border-radius: var(--radius);
-	background-color: var(--surface-color);
-	display: block;
-	
-}
-
-a {
-	color: var(--text-color);
-	text-decoration: none;
-}
-a:hover {
-	text-decoration: dotted underline;
-}
-
-.links {
-	display: flex;
-	gap: var(--space);
-	font-size: 0.9rem;
-	opacity: 0.9;
-}
-
-.links a {
-	padding: calc(var(--space) / 3) calc(var(--space) / 1.5);
-	border: 1px solid var(--border-color);
-	border-radius: var(--radius);
-}
-
-details {
-	display: block;
-	
-}
-
-summary {
-	flex-grow: 0;
-	padding: 4px var(--space);
-	outline: 1px solid var(--border-color);
-	border-radius: var(--radius);
-	margin-bottom: 5px;
-	user-select: none;
-	cursor: pointer;
-}
-
-summary:hover {
-	font-weight: bold;
-}
-summary > span {
-	margin-left: calc(var(--space) / 2);
-}
-
-details[open] > .contain {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space);
-}
-
-.contain > iframe {
-	width: 100%;
-	height: 400px;
-	display: block;
-	border: 0;
-}
-
-
-article.intro {
-	font-size: 0.8rem;
-	
 }
 
 main {
