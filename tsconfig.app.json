@@ -2,9 +2,11 @@
   "extends": "@vue/tsconfig/tsconfig.dom.json",
   "include": [
     "env.d.ts", 
+    "css.d.ts",
     "src/**/*", 
     "src/**/*.vue",
     "src/**/*.json",
+     "eslint.config.*",
   ],
   "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {
@@ -24,13 +26,12 @@
     },
     
     // keep tsconfig from vue-ds-template
-    "target": "es6",
+    "target": "es6", // ES2015
     "module": "esnext",
     "moduleResolution": "bundler",
     "strict": true,
     "jsx": "preserve",
     "importHelpers": true,
-    "downlevelIteration": true,
     "experimentalDecorators": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true, // doesn't work for vue-tsc --build
@@ -38,17 +39,24 @@
     "outDir": "dist",
     "noImplicitAny": false,
     "resolveJsonModule": true,
+    "noUncheckedSideEffectImports": false,
     // lib declaration overrides what is set by vue-tsconfig (es2020)
     "lib": [
       "dom",
       "dom.iterable",
       "es6",
+      "ES2015",
       "ES2017",
+      "ES2018.Promise" // to get Promise.finally
     ],
     
     // recommended by https://www.typescriptlang.org/docs/handbook/modules/guides/choosing-compiler-options.html#im-using-a-bundler
     "allowImportingTsExtensions": true,
     "allowArbitraryExtensions": true,
     
-  }
+  },
+  "vueCompilerOptions": {
+    "fallthroughAttributes": true,
+    "htmlAttributes": []
+  },
 }
