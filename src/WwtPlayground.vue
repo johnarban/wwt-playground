@@ -50,13 +50,7 @@
               class="background-select"
             />
           </div>
-          <div id="right-buttons">
-            <brightness-contrast
-              element=".wwtelescope-component > canvas"
-              :initial-brightness="2.5"
-              :initial-contrast="1"
-            />
-          </div>
+          <div id="right-buttons"></div>
         </div>
 
         <!-- Bottom row: project / funder logos. -->
