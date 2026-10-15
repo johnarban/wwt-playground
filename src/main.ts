@@ -3,7 +3,6 @@ import { createApp, type DirectiveBinding, type Plugin } from "vue";
 import { FundingAcknowledgement, IconButton, CreditLogos } from "@cosmicds/vue-toolkit";
 import WwtPlayground from "./WwtPlayground.vue";
 import Loader from "./components/Loader.vue";
-import BrightnessContrast from "./components/BrightnessContrast.vue";
 
 import vuetify from "@/plugins/vuetify";
 
@@ -60,7 +59,6 @@ createApp(WwtPlayground, {
   .component("funding-acknowledgement", FundingAcknowledgement)
   .component("credit-logos", CreditLogos)
   .component("wwt-loader", Loader)
-  .component("brightness-contrast", BrightnessContrast)
 
   // Mount
   .mount("#app-mount");
