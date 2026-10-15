@@ -52,11 +52,6 @@
             </v-btn>
           </div>
           <div id="right-buttons">
-            <brightness-contrast
-              element=".wwtelescope-component > canvas"
-              :initial-brightness="2.5"
-              :initial-contrast="1"
-            />
             <AddShader
               :in3d="in3d"
               :location="location"
