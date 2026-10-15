@@ -2,6 +2,7 @@
   "extends": "@vue/tsconfig/tsconfig.dom.json",
   "include": [
     "env.d.ts", 
+    "css.d.ts",
     "src/**/*", 
     "src/**/*.vue",
     "src/**/*.json",
@@ -25,7 +26,7 @@
     },
     
     // keep tsconfig from vue-ds-template
-    "target": "es6",
+    "target": "es6", // ES2015
     "module": "esnext",
     "moduleResolution": "bundler",
     "strict": true,
@@ -46,11 +47,16 @@
       "es6",
       "ES2015",
       "ES2017",
+      "ES2018.Promise" // to get Promise.finally
     ],
     
     // recommended by https://www.typescriptlang.org/docs/handbook/modules/guides/choosing-compiler-options.html#im-using-a-bundler
     "allowImportingTsExtensions": true,
     "allowArbitraryExtensions": true,
     
-  }
+  },
+  "vueCompilerOptions": {
+    "fallthroughAttributes": true,
+    "htmlAttributes": []
+  },
 }

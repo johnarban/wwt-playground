@@ -1,39 +1,42 @@
 <template>
   <transition name="fade">
-    <div 
-      v-show="isLoading" 
-      id="modal-loading" 
+    <div
+      v-show="isLoading"
+      id="modal-loading"
       class="modal"
     >
       <div class="container">
-        <div class="spinner"></div>
-        <p>Loading …</p>
+        <slot :loading="isLoading">
+          <div class="spinner"></div>
+          <p>Loading …</p>
+        </slot>
       </div>
     </div>
   </transition>
 </template>
 
-
 <script setup lang="ts">
 const isLoading = defineModel<boolean>({ default: true });
+
+defineSlots<{
+  // not sure the return type is important. docs use any, but others use void
+  default(props: { loading: boolean}): void;
+}>();
+
 </script>
 
 <style scoped>
 .fade-enter-active,
-.fade-leave-active
-{
+.fade-leave-active {
   transition: opacity 0.3s;
 }
 
-
 .fade-enter-from,
-.fade-leave-to
-{
+.fade-leave-to {
   opacity: 0;
 }
 
-.modal
-{
+.modal {
   position: absolute;
   top: 0px;
   left: 0px;
@@ -47,23 +50,18 @@ const isLoading = defineModel<boolean>({ default: true });
   justify-content: center;
 }
 
-#modal-loading
-{
+#modal-loading {
   background-color: #000;
-
 }
 
-#modal-loading .container
-{
+#modal-loading .container {
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: center;
-
 }
 
-#modal-loading .container .spinner
-{
+#modal-loading .container .spinner {
   background-image: url("https://projects.cosmicds.cfa.harvard.edu/cds-website/misc/lunar_loader.gif");
   background-repeat: no-repeat;
   background-size: contain;
@@ -71,8 +69,7 @@ const isLoading = defineModel<boolean>({ default: true });
   height: 3rem;
 }
 
-#modal-loading .container p
-{
+#modal-loading .container p {
   margin: 0 0 0 1rem;
   padding: 0;
   font-size: 2rem;

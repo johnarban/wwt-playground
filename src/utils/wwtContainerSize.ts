@@ -1,4 +1,4 @@
-import { onMounted, onUnmounted} from 'vue';
+import { onMounted, onUnmounted } from "vue";
 
 export function watchWwtContainerSize(wwtContainerSelector: string, parentContainerSelector: string) {
   let resizeObserver: ResizeObserver | null = null;
@@ -8,7 +8,6 @@ export function watchWwtContainerSize(wwtContainerSelector: string, parentContai
     const parentContainer = document.querySelector(parentContainerSelector) as HTMLElement;
 
     if (container && parentContainer) {
-
       // Create a ResizeObserver to watch for changes in the parent container's size
       resizeObserver = new ResizeObserver(([entry]) => {
         const { width, height } = entry.contentRect;
@@ -25,5 +24,4 @@ export function watchWwtContainerSize(wwtContainerSelector: string, parentContai
       resizeObserver.disconnect();
     }
   });
-
-}   
+}
