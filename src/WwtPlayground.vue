@@ -39,6 +39,42 @@
               @activate="() => (showInfoSheet = !showInfoSheet)"
             >
             </icon-button>
+            <div id="simbad-search">
+              <simbad-resolver
+                goto
+                @resolved="onResolved"
+              />
+              <div
+                id="details-display"
+                class="text-caption"
+                aria-live="polite"
+              >
+                <div v-if="identifying">Looking up what's there…</div>
+                <div v-else-if="identifyMessage">{{ identifyMessage }}</div>
+                <template v-else-if="selected">
+                  <div>
+                    <strong>{{ selected.oname }}</strong>
+                    <span v-if="selected.otype"> ({{ selected.otype }})</span>
+                  </div>
+                  <div v-if="selected.raDeg != null && selected.decDeg != null">
+                    {{ fmtRA(selected.raDeg * D2R, 2) }}, {{ fmtDec(selected.decDeg * D2R, 1) }}
+                  </div>
+                  <div v-if="selected.size">Size: {{ fmtAngle(selected.size) }}</div>
+                  <div v-if="selected.click">
+                    Nearest within {{ selected.click.radiusArcSec }}″ of {{ fmtRA(selected.click.raDeg * D2R) }},
+                    {{ fmtDec(selected.click.decDeg * D2R) }}
+                  </div>
+                  <a
+                    v-if="selected.oname"
+                    :href="simbadUrl(selected.oname)"
+                    target="_blank"
+                    rel="noopener"
+                    >Open in SIMBAD</a
+                  >
+                </template>
+                <div v-else>Or click the sky to identify an object</div>
+              </div>
+            </div>
           </div>
           <div id="center-buttons"></div>
           <div id="right-buttons">
@@ -52,6 +88,15 @@
 
         <!-- Bottom row: project / funder logos. -->
         <div id="bottom-content">
+          <div
+            v-if="currentView"
+            id="current-view"
+            class="text-caption"
+          >
+            <div>RA {{ currentView.ra }}</div>
+            <div>Dec {{ currentView.dec }}</div>
+            <div>FOV {{ currentView.fov }}</div>
+          </div>
           <div
             id="body-logos"
             :class="{ 'small-logos': smallSize }"
@@ -97,7 +142,10 @@
           <p>This is built with Vue 3, Vuetify 3 on Vite 7 with TS 6. Hass LESS for styling</p>
         </tab-page>
 
-        <tab-page title="User Guide" value="user-guide">
+        <tab-page
+          title="User Guide"
+          value="user-guide"
+        >
           <user-guide />
         </tab-page>
       </tabbed-sheet>
@@ -107,7 +155,7 @@
 
 <script setup lang="ts">
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ref, reactive, computed, onMounted, nextTick, watch, type Ref } from "vue";
+import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick, watch, type Ref } from "vue";
 import { useDisplay } from "vuetify";
 
 /* WWT imports */
@@ -133,6 +181,10 @@ import SplashScreen from "./components/SplashScreen.vue";
 import TabbedSheet from "./components/TabbedSheet.vue";
 import TabPage from "./components/TabPage.vue";
 import UserGuide from "./components/UserGuide.vue";
+import SimbadResolver from "./components/SimbadResolver.vue";
+import { simbadResolveCoordinates, type ResolvedObject } from "./name_resolution";
+import { addClickNoDragListeners } from "./onClickNoDrag";
+import { fmtAngle, fmtDec, fmtRA } from "./utils/format";
 import { watchWwtContainerSize } from "./utils/wwtContainerSize.ts";
 // watchWwtContainerSize('.wwtelescope-component', '#main-content');
 
@@ -187,6 +239,64 @@ const accentColor = ref("#306C9F");
 const accentColor2 = ref("#FC9954");
 const buttonColor = ref("#ffffff");
 
+interface SelectedObject extends ResolvedObject {
+  /** where the user clicked, for click lookups */
+  click?: { raDeg: number; decDeg: number; radiusArcSec: number };
+}
+const selected = ref<SelectedObject | null>(null);
+const identifying = ref(false);
+const identifyMessage = ref("");
+let lookup = 0;
+
+function onResolved(obj: ResolvedObject) {
+  lookup++; // a pending click lookup is now stale
+  identifying.value = false;
+  identifyMessage.value = "";
+  selected.value = obj;
+}
+
+function simbadUrl(oname: string) {
+  return `https://simbad.cds.unistra.fr/simbad/sim-id?Ident=${encodeURIComponent(oname)}`;
+}
+
+function resolveTargetAtCoordinatesOnClick(event: PointerEvent) {
+  const canvas = event.currentTarget as HTMLCanvasElement;
+  // canvas-relative. the engine divides by canvas.width (backing-buffer px), events are CSS px
+  const rect = canvas.getBoundingClientRect();
+  const x = ((event.clientX - rect.left) * canvas.width) / rect.width;
+  const y = ((event.clientY - rect.top) * canvas.height) / rect.height;
+
+  let ra: number, dec: number; // in degrees
+  try {
+    ({ ra, dec } = store.findRADecForScreenPoint({ x, y }));
+  } catch {
+    identifyMessage.value = "Click-to-identify needs a sky background";
+    return;
+  }
+
+  // search ~8 screen px around the click, from 1″ to 30′
+  const arcsecPerPx = ((store.zoomDeg / 6) * 3600) / rect.height;
+  const radiusArcSec = Math.round(Math.min(1800, Math.max(1, 8 * arcsecPerPx)));
+
+  const id = ++lookup;
+  identifying.value = true;
+  simbadResolveCoordinates(ra, dec, radiusArcSec)
+    .then((obj) => {
+      if (id !== lookup) return;
+      selected.value = { ...obj, click: { raDeg: ra, decDeg: dec, radiusArcSec } };
+      identifyMessage.value = "";
+    })
+    .catch(() => {
+      if (id !== lookup) return;
+      identifyMessage.value = `Nothing in SIMBAD within ${radiusArcSec}″ of that point`;
+    })
+    .finally(() => {
+      if (id === lookup) identifying.value = false;
+    });
+}
+let removeClickListeners: (() => void) | null = null;
+onBeforeUnmount(() => removeClickListeners?.());
+
 onMounted(() => {
   // Boilerplate to disable WWT and let the WebGlTest warning show if WebGL2 is not supported.
   if (webglDisabled.value) {
@@ -208,10 +318,25 @@ onMounted(() => {
       .then(() => (positionSet.value = true));
     // If there are layers to set up, do that here!
     layersLoaded.value = true;
+
+    const canvas = document.querySelector<HTMLCanvasElement>(".wwtelescope-component canvas");
+    if (canvas) {
+      removeClickListeners = addClickNoDragListeners(canvas, resolveTargetAtCoordinatesOnClick);
+    }
   });
 });
 
 const ready = computed(() => layersLoaded.value && positionSet.value);
+
+// WWT's zoomDeg is 6x the vertical field of view
+const currentView = computed(() => {
+  if (!layersLoaded.value) return null;
+  return {
+    ra: fmtRA(store.raRad),
+    dec: fmtDec(store.decRad),
+    fov: fmtAngle(store.zoomDeg / 6),
+  };
+});
 
 /* `isLoading` is a bit redundant here, but it could potentially have independent logic */
 const isLoading = computed(() => !ready.value);
@@ -380,6 +505,34 @@ and remember, position:absolute is still a positioned parent, so children can be
   pointer-events: none;
   align-items: center;
   gap: 5px;
+}
+
+#simbad-search {
+  pointer-events: auto;
+
+  .v-input {
+    min-width: min(300px, 60vw);
+  }
+}
+
+#details-display {
+  max-width: min(300px, 60vw);
+  margin-top: 4px;
+  padding: 4px 8px;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+}
+
+#current-view {
+  align-self: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  padding: 0.25em 0.5em;
+  outline: 1px solid wheat;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.5);
+  font-variant-numeric: tabular-nums;
 }
 
 #bottom-content {
