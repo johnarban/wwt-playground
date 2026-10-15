@@ -40,7 +40,16 @@
             >
             </icon-button>
           </div>
-          <div id="center-buttons"></div>
+          <div id="center-buttons">
+            <v-select
+              v-model="backgroundImageset"
+              :items="backgroundImagesets.map((iset) => ({ title: iset.displayName, value: iset }))"
+              label="Background"
+              density="compact"
+              hide-details
+              class="background-select"
+            />
+          </div>
           <div id="right-buttons">
             <brightness-contrast
               element=".wwtelescope-component > canvas"
@@ -70,6 +79,28 @@
           </div>
         </div>
       </div>
+
+      <!-- labels for the brightest HYG stars. tracked elements are placed in canvas pixels, so they live in #main-content -->
+      <WWTTrackedContent
+        v-for="star in labelStars"
+        :key="star.proper"
+        :ra="star.ra * 15"
+        :dec="star.dec"
+        :label="star.proper"
+        :visible="!showSplashScreen && showLabels && showStars && star.mag <= magLimit"
+        center-on-click
+      >
+        <template #default="{ on, label }">
+          <button
+            type="button"
+            class="hyg-star-label"
+            @click="on.click"
+            @dblclick="on.dblclick"
+          >
+            {{ label }}
+          </button>
+        </template>
+      </WWTTrackedContent>
     </div>
     <!-- Degrade gracefully if WebGL2 is unavailable. -->
     <WebGlTest @webgl2-disabled="webglDisabled = true" />
@@ -97,7 +128,66 @@
           <p>This is built with Vue 3, Vuetify 3 on Vite 7 with TS 6. Hass LESS for styling</p>
         </tab-page>
 
-        <tab-page title="User Guide" value="user-guide">
+        <tab-page title="HYG Stars">
+          <p>
+            The {{ stars.length }} named stars of the HYG catalog as a WWT table layer, drawn as filled circles colored
+            by their B-V color index and sized from their apparent magnitude with WWT's own stellar-magnitude scaling.
+          </p>
+          <v-switch
+            v-model="showStars"
+            label="Show stars"
+            color="primary"
+            hide-details
+          />
+          <v-switch
+            v-model="showLabels"
+            label="Label the brightest stars"
+            color="primary"
+            hide-details
+          />
+          <v-switch
+            v-model="colorByBV"
+            label="Color by B-V"
+            color="primary"
+            hide-details
+          />
+          <v-switch
+            v-model="sizeByMag"
+            label="Size by magnitude"
+            color="primary"
+            hide-details
+          />
+          <v-slider
+            v-model="magLimit"
+            :label="`Faintest magnitude: ${magLimit.toFixed(1)} (${shownCount} stars)`"
+            :min="-1.5"
+            :max="15"
+            :step="0.1"
+            hide-details
+            class="mt-4"
+          />
+          <v-slider
+            v-model="starSize"
+            label="Star size"
+            :min="0.02"
+            :max="0.5"
+            :step="0.01"
+            hide-details
+          />
+          <v-slider
+            v-model="opacity"
+            label="Opacity"
+            :min="0"
+            :max="1"
+            :step="0.05"
+            hide-details
+          />
+        </tab-page>
+
+        <tab-page
+          title="User Guide"
+          value="user-guide"
+        >
           <user-guide />
         </tab-page>
       </tabbed-sheet>
@@ -125,7 +215,7 @@ import {
 } from "@cosmicds/vue-toolkit";
 import { D2R, R2D, H2D, R2H, H2R, D2H } from "@wwtelescope/astro";
 import { AstroCalc, WWTControl, SpaceTimeController, Settings } from "@wwtelescope/engine";
-import { SolarSystemObjects } from "@wwtelescope/engine-types";
+import { SolarSystemObjects, PointScaleTypes } from "@wwtelescope/engine-types";
 
 /* local components and composables */
 import WebGlTest from "./components/WebGlTest.vue";
@@ -133,7 +223,12 @@ import SplashScreen from "./components/SplashScreen.vue";
 import TabbedSheet from "./components/TabbedSheet.vue";
 import TabPage from "./components/TabPage.vue";
 import UserGuide from "./components/UserGuide.vue";
+import WWTTrackedContent from "./components/WWTTrackedContent.vue";
+import { useTrackedElements } from "./composables/useTrackedElements";
+import { useSpreadsheetLayer } from "./composables/useSpreadsheetLayer";
+import { getStarColor } from "./astronomy/star_colors";
 import { watchWwtContainerSize } from "./utils/wwtContainerSize.ts";
+import hygProperStars from "./assets/hyg_proper_stars.json";
 // watchWwtContainerSize('.wwtelescope-component', '#main-content');
 
 type CameraParams = Omit<GotoRADecZoomParams, "instant">;
@@ -187,6 +282,76 @@ const accentColor = ref("#306C9F");
 const accentColor2 = ref("#FC9954");
 const buttonColor = ref("#ffffff");
 
+/* HYG stars */
+// RA in hours, dist in parsecs, ci is B-V
+interface HygStar {
+  proper: string;
+  ra: number;
+  dec: number;
+  dist: number;
+  mag: number;
+  ci: number;
+}
+
+// row 0 is Sol, which would be plotted at RA 0 / Dec 0
+const stars: HygStar[] = hygProperStars
+  .filter((s) => s.proper !== "Sol")
+  .map(({ proper, ra, dec, dist, mag, ci }) => ({ proper, ra, dec, dist, mag, ci }));
+const labelStars = [...stars].sort((a, b) => a.mag - b.mag).slice(0, 12);
+
+const showStars = ref(true);
+const showLabels = ref(true);
+const colorByBV = ref(true);
+const sizeByMag = ref(true);
+const magLimit = ref(6.5);
+const starSize = ref(0.15);
+const opacity = ref(1);
+
+const shownCount = computed(() => stars.filter((s) => s.mag <= magLimit.value).length);
+
+// stellarMagnitude sizes are 40 / 1.6^mag; constant is 1, so scale that up to about a 3rd magnitude star
+const CONSTANT_SIZE_BOOST = 10;
+const markerSize = computed(() => starSize.value * (sizeByMag.value ? 1 : CONSTANT_SIZE_BOOST));
+
+const hygTable = useSpreadsheetLayer(
+  stars.map((s) => ({ ...s, color: getStarColor(s.ci) })),
+  {
+    name: "HYG Stars",
+    color: "#ffffff",
+    markerType: "filledCircle",
+    markerSize: markerSize.value,
+    distanceColumn: "dist",
+    colorColumn: colorByBV.value ? "color" : null,
+    sizeColumn: "mag",
+    sizeScale: sizeByMag.value ? PointScaleTypes.stellarMagnitude : PointScaleTypes.constant,
+    opacity: opacity.value,
+  },
+);
+hygTable.setFilter((row, header) => Number(row[header.indexOf("mag")]) <= magLimit.value);
+
+watch(magLimit, hygTable.applyFilter);
+watch(showStars, hygTable.setVisible);
+watch(colorByBV, (on) => hygTable.setColorColumn(on ? "color" : null));
+watch(sizeByMag, (on) =>
+  hygTable.layer.value?.set_pointScaleType(on ? PointScaleTypes.stellarMagnitude : PointScaleTypes.constant),
+);
+watch(markerSize, hygTable.setMarkerSize);
+watch(opacity, hygTable.setOpacity);
+
+// the shared tracked-elements instance lives as long as the app, not the first label
+useTrackedElements(store);
+
+const backgroundImageset = computed({
+  // the items' values are the imagesets, so return the matching one rather than its name
+  get() {
+    const name = store.backgroundImageset?.get_name();
+    return backgroundImagesets.find((iset) => iset.imagesetName === name);
+  },
+  set(value: BackgroundImageset) {
+    store.setBackgroundImageByName(value.imagesetName);
+  },
+});
+
 onMounted(() => {
   // Boilerplate to disable WWT and let the WebGlTest warning show if WebGL2 is not supported.
   if (webglDisabled.value) {
@@ -207,6 +372,9 @@ onMounted(() => {
       })
       .then(() => (positionSet.value = true));
     // If there are layers to set up, do that here!
+    await hygTable.createLayer();
+    hygTable.applyFilter();
+    hygTable.setVisible(showStars.value);
     layersLoaded.value = true;
   });
 });
@@ -504,6 +672,20 @@ The default DOM structure is basically
   #wwt-overlay {
     border: 3px solid aqua;
   }
+}
+
+.background-select {
+  width: 200px;
+  pointer-events: auto;
+}
+
+.hyg-star-label {
+  transform: translate(8px, -50%);
+  padding: 0 0.25em;
+  color: white;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  text-shadow: 0 0 3px black;
 }
 
 #bottom-drawer {
