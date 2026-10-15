@@ -52,6 +52,37 @@
 
         <!-- Bottom row: project / funder logos. -->
         <div id="bottom-content">
+          <image-crossfade-slider
+            v-model="crossFade"
+            class="cross-fade-slider"
+            :left="linesImageset"
+            :right="starsImageset"
+            left-label="Lines"
+            right-label="Stars"
+            blend="over"
+            :opacity="sphereXFade"
+            :hidden="imagesHidden"
+          />
+          <div class="foreground-background-opacity-control d-flex align-center ga-2 px-3 rounded">
+            <v-btn
+              size="small"
+              variant="tonal"
+              @click="imagesHidden = !imagesHidden"
+            >
+              {{ imagesHidden ? "Show" : "Hide" }} SPHEREx layers
+            </v-btn>
+            <v-slider
+              v-model="sphereXFade"
+              class="sphere-x-fade-slider"
+              label="Fade"
+              aria-label="Fade SPHEREx layers against the background"
+              :min="0"
+              :max="1"
+              :step="0.01"
+              :disabled="imagesHidden"
+              hide-details
+            />
+          </div>
           <div
             id="body-logos"
             :class="{ 'small-logos': smallSize }"
@@ -97,7 +128,10 @@
           <p>This is built with Vue 3, Vuetify 3 on Vite 7 with TS 6. Hass LESS for styling</p>
         </tab-page>
 
-        <tab-page title="User Guide" value="user-guide">
+        <tab-page
+          title="User Guide"
+          value="user-guide"
+        >
           <user-guide />
         </tab-page>
       </tabbed-sheet>
@@ -133,6 +167,8 @@ import SplashScreen from "./components/SplashScreen.vue";
 import TabbedSheet from "./components/TabbedSheet.vue";
 import TabPage from "./components/TabPage.vue";
 import UserGuide from "./components/UserGuide.vue";
+import ImageCrossfadeSlider from "./components/ImageCrossfadeSlider.vue";
+import { useWtml } from "./composables/useWtmlLoader";
 import { watchWwtContainerSize } from "./utils/wwtContainerSize.ts";
 // watchWwtContainerSize('.wwtelescope-component', '#main-content');
 
@@ -187,6 +223,20 @@ const accentColor = ref("#306C9F");
 const accentColor2 = ref("#FC9954");
 const buttonColor = ref("#ffffff");
 
+const linesImageName = "SPHEREx_LinesRB_equirectangular";
+const starsImageName = "SPHEREx_StarsRGB_equirectangular";
+// local WTML wrapping the tiles on the old sphere-x deploy in Places
+const sphereX = useWtml(`${import.meta.env.BASE_URL}sphere-x/spherex.wtml`);
+const layerNamed = (name: string) => sphereX.imagesetLayers[sphereX.imagesetNames().indexOf(name)] ?? null;
+const linesImageset = computed(() => layerNamed(linesImageName));
+const starsImageset = computed(() => layerNamed(starsImageName));
+
+// 0 = lines, 1 = stars. the "over" blend keeps the under layer opaque and swaps draw order at 0.5
+const crossFade = ref(0);
+// both layers against the WWT background
+const sphereXFade = ref(1.0);
+const imagesHidden = ref(false);
+
 onMounted(() => {
   // Boilerplate to disable WWT and let the WebGlTest warning show if WebGL2 is not supported.
   if (webglDisabled.value) {
@@ -199,15 +249,21 @@ onMounted(() => {
 
   store.waitForReady().then(async () => {
     skyBackgroundImagesets.forEach((iset) => backgroundImagesets.push(iset));
-    // store.setBackgroundImageByName("SDSS");
+    // store.setBackgroundImageByName("Deep Star Maps 2020");
+    store.applySetting(["galacticMode", true]);
     store
       .gotoRADecZoom({
         ...props.initialCameraParams,
         instant: true,
       })
       .then(() => (positionSet.value = true));
-    // If there are layers to set up, do that here!
-    layersLoaded.value = true;
+    sphereX.ready.then(() => {
+      console.log("SPHEREx image layers loaded:", {
+        starsImageset: starsImageset.value,
+        linesImageset: linesImageset.value,
+      });
+      layersLoaded.value = true;
+    });
   });
 });
 
@@ -379,10 +435,26 @@ and remember, position:absolute is still a positioned parent, so children can be
   flex-direction: column;
   pointer-events: none;
   align-items: center;
-  gap: 5px;
+  gap: 1.5rem;
 }
 
 #bottom-content {
+  .crossfade-slider.cross-fade-slider {
+    width: 60vw;
+    max-width: none;
+  }
+
+  .foreground-background-opacity-control {
+    pointer-events: auto;
+    background-color: rgba(0, 0, 0, 0.6);
+    border: 1px solid white;
+    width: min(100%, 400px);
+
+    .sphere-x-fade-slider {
+      flex: 1;
+    }
+  }
+
   #body-logos {
     align-self: flex-end;
   }

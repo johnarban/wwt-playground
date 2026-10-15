@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- the deployed toasty WTMLs have a bare ImageSet under the Folder; useWtml needs Places. tiles stay on the old sphere-x deploy -->
+<Folder Browseable="True" Group="Explorer" Name="SPHEREx all-sky" Searchable="True">
+  <Place Name="SPHEREx_LinesRB_equirectangular" DataSetType="Sky" RA="0" Dec="0" ZoomLevel="360" Angle="0" Rotation="0" Opacity="100">
+    <ForegroundImageSet>
+      <ImageSet BandPass="Visible" BaseDegreesPerTile="180" BaseTileLevel="0" BottomsUp="False" CenterX="0" CenterY="0" DataSetType="Sky" ElevationModel="False" FileType=".png" Generic="False" Name="SPHEREx_LinesRB_equirectangular" Projection="Toast" QuadTreeMap="" Rotation="0" Sparse="True" StockSet="False" TileLevels="4" Url="https://raw.githubusercontent.com/johnarban/data_repo/main/sphere-x/SPHEREx_LinesRB_equirectangular_toast/{1}/{3}/{3}_{2}.png" WidthFactor="2">
+        <ThumbnailUrl />
+      </ImageSet>
+    </ForegroundImageSet>
+  </Place>
+  <Place Name="SPHEREx_StarsRGB_equirectangular" DataSetType="Sky" RA="0" Dec="0" ZoomLevel="360" Angle="0" Rotation="0" Opacity="100">
+    <ForegroundImageSet>
+      <ImageSet BandPass="Visible" BaseDegreesPerTile="180" BaseTileLevel="0" BottomsUp="False" CenterX="0" CenterY="0" DataSetType="Sky" ElevationModel="False" FileType=".png" Generic="False" Name="SPHEREx_StarsRGB_equirectangular" Projection="Toast" QuadTreeMap="" Rotation="0" Sparse="True" StockSet="False" TileLevels="4" Url="https://raw.githubusercontent.com/johnarban/data_repo/main/sphere-x/SPHEREx_StarsRGB_equirectangular_toast/{1}/{3}/{3}_{2}.png" WidthFactor="2">
+        <ThumbnailUrl />
+      </ImageSet>
+    </ForegroundImageSet>
+  </Place>
+</Folder>
