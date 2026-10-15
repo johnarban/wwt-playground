@@ -53,9 +53,32 @@ details > summary {
 
 /* style the fieldset */
 fieldset {
+  --color: rgb(var(--v-theme-on-surface));
+  --radius: 4px;
+  --spacing: 8px;
+  --bg: rgb(var(--v-theme-surface));
+
   pointer-events: auto;
   position: relative;
-  padding: 1rem;
+  padding: calc(2 * var(--spacing)) var(--spacing);
+  border: 1px solid var(--color);
+  border-radius: var(--radius);
+  background-color: rgba(var(--v-theme-surface), 0.75);
+}
+
+fieldset > legend {
+  padding-inline: var(--spacing);
+  padding-block: 2px;
+  border: 1px solid var(--color);
+  border-radius: var(--radius);
+  background-color: var(--bg);
+}
+
+fieldset input {
+  border: 1px solid var(--color);
+  border-radius: var(--radius);
+  padding: var(--spacing);
+  background-color: var(--bg);
 }
 
 fieldset > legend,

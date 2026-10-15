@@ -39,19 +39,46 @@
               @activate="() => (showInfoSheet = !showInfoSheet)"
             >
             </icon-button>
+            <WWTTimeControl v-model="playing" />
           </div>
-          <div id="center-buttons"></div>
+          <div id="center-buttons">
+            <v-btn
+              class="text-none"
+              density="compact"
+              rounded="lg"
+              @click="toggle3D"
+            >
+              Switch to {{ in3d ? "2D" : "3D" }}
+            </v-btn>
+          </div>
           <div id="right-buttons">
             <brightness-contrast
               element=".wwtelescope-component > canvas"
               :initial-brightness="2.5"
               :initial-contrast="1"
             />
+            <AddShader
+              :in3d="in3d"
+              :location="location"
+            />
           </div>
         </div>
 
         <!-- Bottom row: project / funder logos. -->
         <div id="bottom-content">
+          <div id="time-slider-container">
+            <input
+              id="time-slider"
+              v-model.number="timeOfDay"
+              type="range"
+              min="0"
+              max="86399"
+              step="10"
+              aria-label="UTC time of day"
+              @input="onTimeChange"
+            />
+            <span id="time-label">{{ timeLabel }} UTC</span>
+          </div>
           <div
             id="body-logos"
             :class="{ 'small-logos': smallSize }"
@@ -97,7 +124,10 @@
           <p>This is built with Vue 3, Vuetify 3 on Vite 7 with TS 6. Hass LESS for styling</p>
         </tab-page>
 
-        <tab-page title="User Guide" value="user-guide">
+        <tab-page
+          title="User Guide"
+          value="user-guide"
+        >
           <user-guide />
         </tab-page>
       </tabbed-sheet>
@@ -124,7 +154,7 @@ import {
   IconButton,
 } from "@cosmicds/vue-toolkit";
 import { D2R, R2D, H2D, R2H, H2R, D2H } from "@wwtelescope/astro";
-import { AstroCalc, WWTControl, SpaceTimeController, Settings } from "@wwtelescope/engine";
+import { AstroCalc, WWTControl, SpaceTimeController, Settings, Coordinates } from "@wwtelescope/engine";
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
 
 /* local components and composables */
@@ -133,27 +163,20 @@ import SplashScreen from "./components/SplashScreen.vue";
 import TabbedSheet from "./components/TabbedSheet.vue";
 import TabPage from "./components/TabPage.vue";
 import UserGuide from "./components/UserGuide.vue";
+import AddShader from "./components/AddShader.vue";
+import WWTTimeControl from "./components/WWTTimeControl.vue";
 import { watchWwtContainerSize } from "./utils/wwtContainerSize.ts";
 // watchWwtContainerSize('.wwtelescope-component', '#main-content');
 
 type CameraParams = Omit<GotoRADecZoomParams, "instant">;
 export interface WwtPlaygroundProps {
   wwtNamespace?: string;
-  initialCameraParams?: CameraParams;
 }
 
 const { smAndDown } = useDisplay();
 
 const props = withDefaults(defineProps<WwtPlaygroundProps>(), {
   wwtNamespace: "wwt-playground",
-  initialCameraParams: () => {
-    const galacticCenter = AstroCalc.galacticToJ2000(0, 0);
-    return {
-      raRad: galacticCenter.RA * H2R,
-      decRad: galacticCenter.dec * D2R,
-      zoomDeg: 360,
-    };
-  },
 });
 
 const store = engineStore();
@@ -187,6 +210,71 @@ const accentColor = ref("#306C9F");
 const accentColor2 = ref("#FC9954");
 const buttonColor = ref("#ffffff");
 
+const in3d = ref(false);
+
+function toggle3D() {
+  if (!in3d.value) {
+    store.setBackgroundImageByName("Solar System");
+    in3d.value = true;
+  } else if (backgroundImagesets[0]) {
+    store.setBackgroundImageByName(backgroundImagesets[0].imagesetName);
+    in3d.value = false;
+  }
+}
+
+interface LocationDeg {
+  lat: number;
+  lon: number;
+}
+const defaultLocation: LocationDeg = { lat: 50, lon: -70 };
+const location = ref(defaultLocation);
+// March 20, 2026 10:46 UTC (equinox morning)
+const initialTime = new Date(Date.UTC(2026, 2, 20, 10, 46, 0));
+
+// look at the eastern horizon
+// const galacticCenter = AstroCalc.galacticToJ2000(0, 0);
+const center = Coordinates.horizonToEquitorial(
+  Coordinates.fromLatLng(0, 90),
+  Coordinates.fromLatLng(location.value.lat, location.value.lon),
+  initialTime,
+);
+const initialCameraParams: CameraParams = {
+  raRad: center.get_RA() * H2R, // convert hours to radian
+  decRad: center.get_dec() * D2R, // convert degrees to radians
+  rollRad: 0,
+  zoomDeg: 360,
+};
+
+// whether WWT time is running (WWTTimeControl's SpeedControl)
+const playing = ref(false);
+
+// seconds from UTC midnight
+const secondsOfDay = (date: Date) => date.getUTCHours() * 3600 + date.getUTCMinutes() * 60 + date.getUTCSeconds();
+const timeOfDay = ref(secondsOfDay(initialTime));
+const timeLabel = computed(() => {
+  const h = Math.floor(timeOfDay.value / 3600);
+  const m = Math.floor((timeOfDay.value % 3600) / 60);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+});
+
+function onTimeChange() {
+  if (!ready.value) return;
+  playing.value = false;
+  const today = store.currentTime;
+  const midnight = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+  store.setTime(new Date(midnight + timeOfDay.value * 1000));
+}
+
+watch(
+  () => store.currentTime,
+  (date) => (timeOfDay.value = secondsOfDay(date)),
+);
+
+function setWWTLocation(location: LocationDeg) {
+  store.applySetting(["locationLat", location.lat]);
+  store.applySetting(["locationLng", location.lon]);
+}
+
 onMounted(() => {
   // Boilerplate to disable WWT and let the WebGlTest warning show if WebGL2 is not supported.
   if (webglDisabled.value) {
@@ -198,16 +286,32 @@ onMounted(() => {
   }
 
   store.waitForReady().then(async () => {
+    store.applySetting(["localHorizonMode", true]);
+    setWWTLocation(location.value);
+    store.applySetting(["showAltAzGrid", true]);
+    store.applySetting(["showAltAzGridText", true]);
+    // the behind-the-grid shader hook only fires when the engine draws the solar system
+    store.applySetting(["showSolarSystem", true]);
+    store.setClockSync(false); // need this to prevent store.currentTime from being constantly set
+    store.setTime(initialTime);
     skyBackgroundImagesets.forEach((iset) => backgroundImagesets.push(iset));
     // store.setBackgroundImageByName("SDSS");
+    // store.applySetting(['showGrid', true]);
+    // store.applySetting(['showEquatorialGridText', true]);
+    // const sunPos = AstroCalc.getPlanet(SpaceTimeController.utcToJulian(store.currentTime), SolarSystemObjects.sun, 0, 0, 0);
     store
       .gotoRADecZoom({
-        ...props.initialCameraParams,
+        ...initialCameraParams,
+        // raRad: sunPos.RA * D2R,
+        // decRad: sunPos.dec * D2R,
         instant: true,
       })
       .then(() => (positionSet.value = true));
     // If there are layers to set up, do that here!
     layersLoaded.value = true;
+    if (in3d.value) {
+      store.setBackgroundImageByName("Solar System");
+    }
   });
 });
 
@@ -380,6 +484,27 @@ and remember, position:absolute is still a positioned parent, so children can be
   pointer-events: none;
   align-items: center;
   gap: 5px;
+}
+
+#time-slider-container {
+  width: min(80%, 40rem);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  pointer-events: auto;
+}
+
+#time-slider {
+  flex: 1;
+  cursor: pointer;
+  accent-color: #fff;
+}
+
+#time-label {
+  color: #fff;
+  font-family: monospace;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
 }
 
 #bottom-content {

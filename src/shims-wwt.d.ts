@@ -37,6 +37,12 @@ declare module "@wwtelescope/engine" {
     horizonToEquitorial(altAz: Coordinates, location: Coordinates, utc: Date): Coordinates;
   }
 
+  // statics the engine has but 7.41 doesn't type (used by the shaders)
+  namespace Coordinates {
+    function horizonToEquitorial(altAz: Coordinates, location: Coordinates, utc: Date): Coordinates;
+    function mstFromUTC2(utc: Date, lng: number): number;
+  }
+
   // in the engine since 7.36, but only typed on the ScriptInterface and the pinia store
   interface WWTControl {
     addFrameCallback(callback: FrameCallback): void;
