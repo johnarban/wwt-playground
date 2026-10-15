@@ -1,16 +1,25 @@
-import { ref, watch, onUnmounted, onMounted, type Ref,  } from 'vue';
-import type { WWTEngineStore, Degree } from '../types';
-import { waitForWWTReady } from '../wwt-hacks';
-import { checkPointContainedByDiv } from '../utils';
+// from the asteroids / hyg-tables branches (src/trackedElements), newer than rubin-first-look's
+import { ref, watch, onUnmounted, onMounted, type Ref } from "vue";
+import { WWTControl } from "@wwtelescope/engine";
+import type { engineStore } from "@wwtelescope/engine-pinia";
+import { ImageSetType } from "@wwtelescope/engine-types";
+import { waitForWWTReady } from "../wwt-hacks";
 
+type WWTEngineStore = ReturnType<typeof engineStore>;
+export type Degree = number;
 
-
-
+// screen points from the engine are relative to the canvas, so only the rect's size matters
+export function checkPointContainedByDiv(point: { x: number; y: number }, divRect: DOMRect | null = null): boolean {
+  if (divRect) {
+    return point.x >= 0 && point.x <= divRect.width && point.y >= 0 && point.y <= divRect.height;
+  }
+  return point.x >= 0 && point.x <= window.innerWidth && point.y >= 0 && point.y <= window.innerHeight;
+}
 
 // Element Creation
 function resolveElement(el: HTMLElement | string | null): HTMLElement | null {
-  if (el === null || el === '') return null;
-  if (typeof el === 'string') {
+  if (el === null || el === "") return null;
+  if (typeof el === "string") {
     const foundElement = document.getElementById(el);
     if (foundElement) {
       return foundElement;
@@ -22,17 +31,14 @@ function resolveElement(el: HTMLElement | string | null): HTMLElement | null {
   if (el instanceof HTMLElement) {
     return el;
   }
-  console.warn('Provided element is not a valid HTMLElement or string ID.');
+  console.warn("Provided element is not a valid HTMLElement or string ID.");
   return null;
 }
-  
-  
-
 
 interface LocationDegrees {
   ra: Degree;
   dec: Degree;
-};
+}
 
 interface ScreenPosition {
   x: number;
@@ -61,7 +67,6 @@ export interface UseTrackedElementsReturn {
   moveElementByName: (name: string, pt: LocationDegrees) => void;
 }
 
-
 /**
  * Sets up and manages tracked HTML elements that move with the WWT frame.
  */
@@ -78,7 +83,7 @@ export function useTrackedElements(store: WWTEngineStore): UseTrackedElementsRet
   const resizeObserver = ref(null as ResizeObserver | null);
   const updateOffScreenElements = ref(false);
 
-  const elementVisibilityCache = new Map<string, 'hidden' | 'visible'>();
+  const elementVisibilityCache = new Map<string, "hidden" | "visible">();
   const observer = new MutationObserver(() => {
     elementVisibilityCache.forEach((visibility, name) => {
       const el = getElementByName(name);
@@ -90,23 +95,22 @@ export function useTrackedElements(store: WWTEngineStore): UseTrackedElementsRet
   });
 
   function initializeParentElement() {
-    parentElement.value = store.$wwt.inst.ctl.canvas as HTMLElement;
+    parentElement.value = (WWTControl.singleton as unknown as { canvas: HTMLCanvasElement }).canvas;
   }
 
-  
   function getMarkerLayer(): HTMLElement | null {
-    return parentElement.value as HTMLElement ?? null;
+    return (parentElement.value as HTMLElement) ?? null;
   }
 
   const addTrackedElement = (element: TrackedHTMLElement) => {
     trackedElements.value.push(element);
   };
-  
+
   function applyUniformStyles(el: TrackedHTMLElement) {
-    el.style.position = 'absolute';
+    el.style.position = "absolute";
     el.move = (pt: LocationDegrees) => {
       if (!ready.value) {
-        console.warn('WWT Engine is not ready yet.');
+        console.warn("WWT Engine is not ready yet.");
         return;
       }
       el.trackedData.ra = pt.ra;
@@ -114,7 +118,6 @@ export function useTrackedElements(store: WWTEngineStore): UseTrackedElementsRet
       const screenPos = store.findScreenPointForRADec(pt);
       updateElementScreenPosition(el as TrackedHTMLElement, screenPos);
     };
-    
   }
 
   /**
@@ -125,13 +128,13 @@ export function useTrackedElements(store: WWTEngineStore): UseTrackedElementsRet
   function placeElement(_el: HTMLElement | string | null, pt: TrackedElementData, name: string): TrackedHTMLElement {
     const el = resolveElement(_el) as TrackedHTMLElement;
     if (el === null) {
-      console.warn('Element is null, cannot place it.');
+      console.warn("Element is null, cannot place it.");
       return null as unknown as TrackedHTMLElement;
     }
 
     applyUniformStyles(el);
 
-    el.classList.add('tracked-element');
+    el.classList.add("tracked-element");
     el.trackedData = pt as TrackedElementData;
     el.dataset.name = name;
     el.dataset.originalRa = pt.ra.toString();
@@ -140,9 +143,9 @@ export function useTrackedElements(store: WWTEngineStore): UseTrackedElementsRet
     addTrackedElement(el);
 
     return el;
-  } 
+  }
 
-  function _createElement(pt: { x: number, y: number }, tag = "div"): HTMLElement {
+  function _createElement(pt: { x: number; y: number }, tag = "div"): HTMLElement {
     const marker = document.createElement(tag);
     applyUniformStyles(marker as TrackedHTMLElement);
     marker.style.left = `${pt.x}px`;
@@ -156,15 +159,14 @@ export function useTrackedElements(store: WWTEngineStore): UseTrackedElementsRet
    * @param tag {string} The HTML tag to use for the element (default is 'div').
    * @param name {string} An optional name for the element, used to create a custom CSS class.
    */
-  function createTrackedElement(pt: TrackedElementData, tag = 'div', name = ''): TrackedHTMLElement {
-    
+  function createTrackedElement(pt: TrackedElementData, tag = "div", name = ""): TrackedHTMLElement {
     const element = _createElement({ x: 0, y: 0 }, tag) as TrackedHTMLElement;
-    element.classList.add('tracked-element');
+    element.classList.add("tracked-element");
 
     if (name) {
       element.dataset.name = name;
-      const validName = name.replace(/[^a-zA-Z0-9-_]/g, ''); // sanitize name for CSS class usage
-      
+      const validName = name.replace(/[^a-zA-Z0-9-_]/g, ""); // sanitize name for CSS class usage
+
       element.classList.add(`tracked-element__${validName}`);
     }
 
@@ -190,7 +192,7 @@ export function useTrackedElements(store: WWTEngineStore): UseTrackedElementsRet
    * Checks if a tracked element is visible on the screen and returns its screen position.
    */
   function getScreenPositionAndVisibility(el: TrackedHTMLElement): [ScreenPosition, boolean] {
-    const screen = store.findScreenPointForRADec({ra: el.trackedData.ra, dec: el.trackedData.dec});
+    const screen = store.findScreenPointForRADec({ ra: el.trackedData.ra, dec: el.trackedData.dec });
     const visible = checkPointContainedByDiv(screen, parentElementRect.value);
     return [screen, visible];
   }
@@ -200,17 +202,19 @@ export function useTrackedElements(store: WWTEngineStore): UseTrackedElementsRet
    */
   function updateElements() {
     if (!ready.value || parentElement.value === null) {
-      console.warn('WWT Engine is not ready or parent element is not set.');
+      console.warn("WWT Engine is not ready or parent element is not set.");
       return;
     }
-    
+    // findScreenPointForRADec throws until the background is a sky imageset (it is unset at startup)
+    if (store.backgroundImageset?.get_dataSetType() !== ImageSetType.sky) return;
+
     trackedElements.value.forEach((el) => {
       const [screenPos, onscreen] = getScreenPositionAndVisibility(el as TrackedHTMLElement);
 
       if (onscreen || updateOffScreenElements.value) {
         updateElementScreenPosition(el as TrackedHTMLElement, screenPos);
       }
-      el.style.display = onscreen ? 'block' : 'none';
+      el.style.display = onscreen ? "block" : "none";
     });
   }
 
@@ -225,30 +229,28 @@ export function useTrackedElements(store: WWTEngineStore): UseTrackedElementsRet
     el.remove();
   }
 
-  
-
   function getElementByName(name: string): TrackedHTMLElement | null {
-    return trackedElements.value.find((el) => el.dataset.name === name) as TrackedHTMLElement || null;
+    return (trackedElements.value.find((el) => el.dataset.name === name) as TrackedHTMLElement) || null;
   }
 
   function hideElementByName(name: string) {
     const el = getElementByName(name);
     if (el) {
-      el.style.visibility = 'hidden';
+      el.style.visibility = "hidden";
     } else {
-      elementVisibilityCache.set(name, 'hidden');
+      elementVisibilityCache.set(name, "hidden");
     }
   }
 
   function showElementByName(name: string) {
     const el = getElementByName(name);
     if (el) {
-      el.style.visibility = 'visible';
+      el.style.visibility = "visible";
     } else {
-      elementVisibilityCache.set(name, 'visible');
+      elementVisibilityCache.set(name, "visible");
     }
   }
-  
+
   function moveElementByName(name: string, pt: LocationDegrees) {
     const el = getElementByName(name);
     if (el) {
@@ -266,18 +268,18 @@ export function useTrackedElements(store: WWTEngineStore): UseTrackedElementsRet
       parentElementRect.value = newElement.getBoundingClientRect();
     }
   });
-  
+
   watch(ready, updateElements);
+  watch(() => store.backgroundImageset, updateElements);
   watch(() => [store.raRad, store.decRad, store.zoomDeg, store.rollRad], updateElements);
   watch(parentElementRect, updateElements);
   watch(updateOffScreenElements, updateElements);
 
   onMounted(() => {
     waitForWWTReady(store).then(() => {
-
       // 1. Make sure we have a parent element
       initializeParentElement();
-      
+
       // 2. Set up the Resize Observer
       if (parentElement.value !== null) {
         resizeObserver.value = new ResizeObserver(() => {
@@ -289,7 +291,6 @@ export function useTrackedElements(store: WWTEngineStore): UseTrackedElementsRet
         }
         ready.value = true;
       }
-      
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
@@ -299,6 +300,8 @@ export function useTrackedElements(store: WWTEngineStore): UseTrackedElementsRet
     resizeObserver.value?.disconnect();
     trackedElements.value.forEach((el) => el.remove());
     observer.disconnect();
+    // the next caller sets things up again instead of getting this dead instance
+    instance = null;
   });
 
   instance = {
@@ -315,6 +318,6 @@ export function useTrackedElements(store: WWTEngineStore): UseTrackedElementsRet
     showElementByName,
     moveElementByName,
   };
-  
+
   return instance;
 }
