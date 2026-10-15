@@ -3,7 +3,7 @@
     <v-text-field
       v-model="name"
       :class="['simbad-resolver-text-field', success ? 'resolved' : 'not-resolved']"
-      style="pointer-events: auto;"
+      style="pointer-events: auto"
       label="Object name"
       density="compact"
       :bg-color="success ? 'green' : 'black'"
@@ -14,7 +14,7 @@
       autocorrect="off"
       @keyup.enter="resolveName"
       @keydown.stop
-    >     
+    >
     </v-text-field>
     <v-btn
       v-if="button"
@@ -29,42 +29,46 @@
   </div>
 </template>
 <script lang="ts" setup>
-import {ref, watch} from 'vue';
-import { sesameNameResolver, simbadNameResolver, ResolvedObject} from '@/name_resolution';
-import { engineStore } from '@wwtelescope/engine-pinia';
+import { ref, watch } from "vue";
+import { sesameNameResolver, simbadNameResolver, ResolvedObject } from "@/name_resolution";
+import { engineStore } from "@wwtelescope/engine-pinia";
 import { D2R } from "@wwtelescope/astro";
 
 const store = engineStore();
 
 interface SesameResolverComonentProps {
-  goto?: boolean,
-  button?: boolean,
-  buttonColor?: string
+  goto?: boolean;
+  button?: boolean;
+  buttonColor?: string;
 }
-const props = withDefaults(defineProps<SesameResolverComonentProps>(),{goto: false, button: false, buttonColor: 'on-surface'});
+const props = withDefaults(defineProps<SesameResolverComonentProps>(), {
+  goto: false,
+  button: false,
+  buttonColor: "on-surface",
+});
 
 const emits = defineEmits<{
-  resolved: [value: ResolvedObject]
+  resolved: [value: ResolvedObject];
 }>();
 
-  
 const name = ref<string | null>(null);
 const details = ref<ResolvedObject | null>(null);
-const errorMessage = ref('');
+const errorMessage = ref("");
 
-const resolver: 'sesame' | 'simbad' | 'fallback' = 'fallback';
+const resolver: "sesame" | "simbad" | "fallback" = "fallback";
 const searching = ref(false);
 function simbadWithSesameFallback(name) {
   return simbadNameResolver(name).catch(() => sesameNameResolver(name));
 }
 const resolvers = {
-  'sesame': sesameNameResolver,
-  'simbad': simbadNameResolver,
-  'fallback': simbadWithSesameFallback,
+  sesame: sesameNameResolver,
+  simbad: simbadNameResolver,
+  fallback: simbadWithSesameFallback,
 };
 
 function goTo(object: ResolvedObject) {
-  if (object?.raDeg && object?.decDeg) {
+  if (object?.raDeg != null && object?.decDeg != null) {
+    // 0 is a valid ra/dec
     console.log(`Going to ${object.raDeg}d ${object.decDeg}d`);
     store.gotoRADecZoom({
       raRad: object.raDeg * D2R,
@@ -84,16 +88,15 @@ watch(success, (s) => {
   }
 });
 
-
 function resolveName() {
   console.log(`resolving ${name.value}`);
-  errorMessage.value = '';
+  errorMessage.value = "";
   if (name.value) {
     searching.value = true;
-    (resolvers[resolver])(name.value)
-      .then(d => {
+    resolvers[resolver](name.value)
+      .then((d) => {
         details.value = d;
-        emits('resolved', d);
+        emits("resolved", d);
         searching.value = false;
         success.value = true;
         if (props.goto) {
@@ -103,7 +106,7 @@ function resolveName() {
       .catch((e) => {
         console.log(e);
         searching.value = false;
-        errorMessage.value = 'Could not find object';
+        errorMessage.value = "Could not find object";
       });
   }
 }
@@ -117,5 +120,4 @@ function resolveName() {
   gap: 1em;
   max-width: 400px;
 }
-
 </style>
