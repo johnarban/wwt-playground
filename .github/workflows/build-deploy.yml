@@ -1,22 +1,16 @@
-name: Build and Deploy
+name: Single Branch Build and Deploy
 
 on:
   push:
     branches:
-      - "main"
-      
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+      - '**'
+      - '!gh-pages'
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
   
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
-  group: "pages"
+  group: build-and-deploy-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -24,44 +18,39 @@ jobs:
     if: ${{ github.repository_owner == 'johnarban' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout current branch
         uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-          ref: ${{ github.event.pull_request.head.sha }}
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-    
+
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '20.x'
+          node-version: '22'
+      
+      - name: Use Yarn 4
+        run: |
+          corepack enable
+          yarn set version 4.12.0
 
       - name: Yarn install
-        run: yarn install
+        run: yarn install --immutable
 
       - name: Lint
         run: yarn lint
 
       - name: Build
         run: yarn build
-      
-      - name: Upload GitHub Pages artifact
-        uses: actions/upload-pages-artifact@v3
+
+      - name: Check for draft flag
+        uses: sergeysova/jq-action@v2
+        id: draft
         with:
-          path: ./dist
-      
-      
-
-
-  # Single deploy job since we're just deploying
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
+          cmd: cat package.json | jq -r '.draft // false'
+          
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+        uses: JamesIves/github-pages-deploy-action@v4
+        if: ${{ steps.draft.outputs.value == 'false' }}
+        with:
+          branch: gh-pages
+          folder: dist
+          clean: true
+          target-folder: ${{ github.head_ref || github.ref_name }}
