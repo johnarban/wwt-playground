@@ -12,6 +12,7 @@ declare module "@wwtelescope/engine" {
     get_world(): Matrix3d;
     get_view(): Matrix3d;
     get_projection(): Matrix3d;
+    drawImageSet(imageset: Imageset, opacity: number, smooth?: boolean): void;
   }
 
   // this on the other hand is not exported at all, so we create the class declaration here
@@ -87,5 +88,54 @@ declare module "@wwtelescope/engine" {
   interface Imageset {
     // used by useWtml. returns a zoom (deg) that fits the image; never larger than currentZoom when given
     _guessZoomSetting(currentZoom?: number): number;
+  }
+
+  /* FITS internals (cube slicing) */
+  export type FitsDataUnit = Float32Array | Float64Array | Uint8Array | Int16Array | Int32Array;
+
+  // header values are the raw card strings
+  export interface FitsHeader {
+    [key: string]: string | undefined;
+    SIMPLE: string;
+    BITPIX: string;
+    NAXIS: string;
+    NAXIS1: string;
+    NAXIS2: string;
+    NAXIS3?: string;
+    BSCALE?: string;
+    BZERO?: string;
+    BLANK?: string;
+    BUNIT?: string;
+    CRPIX3?: string;
+    CDELT3?: string;
+    CRVAL3?: string;
+    CTYPE3?: string;
+    CUNIT3?: string;
+    DATAMAX?: string;
+    DATAMIN?: string;
+    OBJECT?: string;
+  }
+
+  interface FitsImage {
+    dataUnit: FitsDataUnit;
+    axisSize: number[];
+    header: FitsHeader;
+  }
+
+  // not exported by the typings; TileCache._tiles holds these
+  export interface Tile {
+    dataset?: Imageset;
+    fitsImage?: unknown;
+    texture2d?: WebGLTexture | null;
+    makeTexture(): void;
+    texReady: boolean;
+    readyToRender: boolean;
+    demReady: boolean;
+    demTile: boolean;
+    requestPending: boolean;
+  }
+
+  namespace TileCache {
+    let _tiles: Record<string, Tile>;
   }
 }
