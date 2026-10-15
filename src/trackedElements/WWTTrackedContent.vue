@@ -1,17 +1,18 @@
+<!-- parked from the original branch: nothing imports it, kept as it was -->
+
 <script setup lang="ts">
+/* eslint-disable */
+// @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { onMounted, ref, watch, inject } from "vue";
-import { useTrackedElements, type TrackedHTMLElement, type Degree } from "../composables/useTrackedElements";
+import { useTrackedElements, type TrackedHTMLElement } from "./useTrackedElements";
 
 import { Place } from "@wwtelescope/engine";
 
 import { computed } from "vue";
+import type { WWTEngineStore, Degree, HourAngle, Pixel } from "../types";
 import { engineStore } from "@wwtelescope/engine-pinia";
-type WWTEngineStore = ReturnType<typeof engineStore>;
-type HourAngle = number;
-type Pixel = number;
-// optional provide("wwtStore", ...), otherwise the global store. the null default keeps vue from warning
-const store = inject<WWTEngineStore | null>("wwtStore", null) ?? engineStore();
+const store = inject<WWTEngineStore>("wwtStore") ?? engineStore();
 const D2R = Math.PI / 180;
 const R2D = 180 / Math.PI;
 
@@ -32,7 +33,7 @@ interface WWTTrackedContentProps {
   label?: string;
   size?: number; // Optional size for the content, if needed
   place?: Place; // Optional place object, if needed
-  offset?: OffsetPixel;
+  offset: OffsetPixel;
   visible?: boolean;
   centerOnClick?: boolean;
   zoomDeg?: Degree | null; // Optional zoom level, if needed
@@ -83,6 +84,8 @@ const trackedElement = ref<TrackedHTMLElement | null>(null);
 
 function goTo(instant = false) {
   if (ready.value && trackedElement.value !== null) {
+    console.log("Current zoomDeg", zoomDeg.value);
+    console.log("Current wwt zoomDeg", store.zoomDeg);
     if (props.place && props.goToPlace) {
       store.gotoTarget({
         place: props.place,
@@ -90,7 +93,7 @@ function goTo(instant = false) {
         noZoom: false,
         trackObject: true,
       });
-    } else {
+    } else if (ra.value && dec.value) {
       store.gotoRADecZoom({
         raRad: ra.value * D2R,
         decRad: dec.value * D2R,
@@ -110,12 +113,6 @@ function onClick() {
 function onDoubleClick() {
   if (props.centerOnClick && ready.value && trackedElement.value !== null) {
     goTo(props.doubleClickInstant);
-  }
-}
-
-function onKeydown(event: KeyboardEvent) {
-  if (event.key === "Enter") {
-    onClick();
   }
 }
 
@@ -168,8 +165,8 @@ const slots = defineSlots<{
   default: {
     on: {
       click: (event: MouseEvent) => void;
-      dblclick: (event: MouseEvent) => void;
-      keydown: (event: KeyboardEvent) => void;
+      doubleClick: (event: MouseEvent) => void;
+      "keydown.enter": (event: KeyboardEvent) => void;
     };
     ra: Degree;
     dec: Degree;
@@ -179,22 +176,22 @@ const slots = defineSlots<{
 </script>
 
 <template>
+  <!-- eslint-disable -->
   <!-- eslint-disable vue/html-indent -->
   <div
     ref="parent"
     class="wwt-tracked-content"
     :class="['wwt-tracked-content', { debug: debug }]"
+    tabindex="0"
   >
     <slot
-      :on="{ click: onClick, dblclick: onDoubleClick, keydown: onKeydown }"
+      :on="{ click: onClick, onDoubleClick: onDoubleClick, 'keydown.enter': onClick }"
       :ra="ra"
       :dec="dec"
       :label="label"
     >
       <div
         :class="['default-wwt-tracked-content-content', { debug: debug }]"
-        role="button"
-        tabindex="0"
         :style="{
           width: props.size + 'px',
           height: props.size + 'px',

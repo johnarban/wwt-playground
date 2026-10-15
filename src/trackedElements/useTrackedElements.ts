@@ -1,20 +1,10 @@
-// from the asteroids / hyg-tables branches (src/trackedElements), newer than rubin-first-look's
+// parked from the original branch: nothing imports it, kept as it was
+/* eslint-disable */
+// @ts-nocheck
 import { ref, watch, onUnmounted, onMounted, type Ref } from "vue";
-import { WWTControl } from "@wwtelescope/engine";
-import type { engineStore } from "@wwtelescope/engine-pinia";
-import { ImageSetType } from "@wwtelescope/engine-types";
+import type { WWTEngineStore, Degree } from "../types";
 import { waitForWWTReady } from "../wwt-hacks";
-
-type WWTEngineStore = ReturnType<typeof engineStore>;
-export type Degree = number;
-
-// screen points from the engine are relative to the canvas, so only the rect's size matters
-export function checkPointContainedByDiv(point: { x: number; y: number }, divRect: DOMRect | null = null): boolean {
-  if (divRect) {
-    return point.x >= 0 && point.x <= divRect.width && point.y >= 0 && point.y <= divRect.height;
-  }
-  return point.x >= 0 && point.x <= window.innerWidth && point.y >= 0 && point.y <= window.innerHeight;
-}
+import { checkPointContainedByDiv } from "../utils";
 
 // Element Creation
 function resolveElement(el: HTMLElement | string | null): HTMLElement | null {
@@ -95,7 +85,7 @@ export function useTrackedElements(store: WWTEngineStore): UseTrackedElementsRet
   });
 
   function initializeParentElement() {
-    parentElement.value = (WWTControl.singleton as unknown as { canvas: HTMLCanvasElement }).canvas;
+    parentElement.value = store.$wwt.inst.ctl.canvas as HTMLElement;
   }
 
   function getMarkerLayer(): HTMLElement | null {
@@ -205,8 +195,6 @@ export function useTrackedElements(store: WWTEngineStore): UseTrackedElementsRet
       console.warn("WWT Engine is not ready or parent element is not set.");
       return;
     }
-    // findScreenPointForRADec throws until the background is a sky imageset (it is unset at startup)
-    if (store.backgroundImageset?.get_dataSetType() !== ImageSetType.sky) return;
 
     trackedElements.value.forEach((el) => {
       const [screenPos, onscreen] = getScreenPositionAndVisibility(el as TrackedHTMLElement);
@@ -270,7 +258,6 @@ export function useTrackedElements(store: WWTEngineStore): UseTrackedElementsRet
   });
 
   watch(ready, updateElements);
-  watch(() => store.backgroundImageset, updateElements);
   watch(() => [store.raRad, store.decRad, store.zoomDeg, store.rollRad], updateElements);
   watch(parentElementRect, updateElements);
   watch(updateOffScreenElements, updateElements);
@@ -300,8 +287,6 @@ export function useTrackedElements(store: WWTEngineStore): UseTrackedElementsRet
     resizeObserver.value?.disconnect();
     trackedElements.value.forEach((el) => el.remove());
     observer.disconnect();
-    // the next caller sets things up again instead of getting this dead instance
-    instance = null;
   });
 
   instance = {

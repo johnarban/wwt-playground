@@ -39,6 +39,82 @@
               @activate="() => (showInfoSheet = !showInfoSheet)"
             >
             </icon-button>
+            <div id="time">
+              {{ formattedTime }}
+            </div>
+            <div id="Sky-SolarSystem-Toggle">
+              <v-btn
+                id="switch-to-3d-button"
+                :color="buttonColor"
+                @click="switchTo3dView"
+              >
+                3D View
+              </v-btn>
+              <v-btn
+                id="switch-to-2d-button"
+                :color="buttonColor"
+                @click="switchTo2dView"
+              >
+                2D View
+              </v-btn>
+            </div>
+            <v-card
+              id="orbit-tools"
+              class="asteroid-panel"
+              density="compact"
+            >
+              <v-card-text class="pa-2">
+                <v-select
+                  v-model="customObject"
+                  :items="objectItems"
+                  label="Custom orbit (OrbitLayer from elements)"
+                  density="compact"
+                  hide-details
+                />
+                <v-switch
+                  v-model="showElementsEditor"
+                  label="Elements editor"
+                  color="primary"
+                  density="compact"
+                  hide-details
+                />
+                <v-switch
+                  v-model="showOrbitComparison"
+                  label="Comparison with JPL"
+                  color="primary"
+                  density="compact"
+                  hide-details
+                />
+                <v-switch
+                  v-model="showLayerManager"
+                  label="Layers"
+                  color="primary"
+                  density="compact"
+                  hide-details
+                />
+                <v-switch
+                  v-model="showDebugAxes"
+                  label="Debug XYZ axes and unit points"
+                  color="primary"
+                  density="compact"
+                  hide-details
+                />
+                <v-switch
+                  v-model="sunEclipticFrameFix"
+                  label="Patch: keep the Sun's frame ecliptic"
+                  color="primary"
+                  density="compact"
+                  hide-details
+                />
+                <v-switch
+                  v-model="basisVectorOrbitDraw"
+                  label="Patch: basis-vector Orbit.draw3D"
+                  color="primary"
+                  density="compact"
+                  hide-details
+                />
+              </v-card-text>
+            </v-card>
           </div>
           <div id="center-buttons"></div>
           <div id="right-buttons">
@@ -47,11 +123,31 @@
               :initial-brightness="2.5"
               :initial-contrast="1"
             />
+            <orbital-elements-editor
+              v-if="objectOrbitLayer && showElementsEditor"
+              class="asteroid-panel orbital-editor-panel"
+              :orbit-layer="objectOrbitLayer"
+            />
+            <layer-manager-panel
+              v-if="showLayerManager"
+              class="asteroid-panel layer-manager-panel pa-2"
+            />
           </div>
         </div>
 
         <!-- Bottom row: project / funder logos. -->
         <div id="bottom-content">
+          <orbit-comparison
+            v-if="objectOrbitLayer && showOrbitComparison"
+            class="asteroid-panel elements-panel"
+            :orbit-layer="objectOrbitLayer"
+          />
+          <speed-control
+            class="speed-control"
+            :max-speed="10_000_000_000"
+            :store="store"
+            @reset="resetTime"
+          />
           <div
             id="body-logos"
             :class="{ 'small-logos': smallSize }"
@@ -95,9 +191,24 @@
         <tab-page title="Information">
           <p>The WWT Playground — a clean, reusable starting point for WorldWideTelescope based projects.</p>
           <p>This is built with Vue 3, Vuetify 3 on Vite 7 with TS 6. Hass LESS for styling</p>
+          <h3>Asteroids</h3>
+          <p>
+            Custom orbits (OrbitLayers built from orbital elements) next to the engine's own. The "franksienkiewicz"
+            layer is 7085 loaded from the MPC through the engine's own TLE path; the custom (cyan) orbit for 7085 should
+            sit on it.
+          </p>
+          <p>
+            Custom orbits relied on an engine <code>Orbit.draw3D</code> "basis-vector" fix that was lost. Rebuilt, it is
+            the same matrix as engine 7.41's, so it changes nothing. The likely real cause: with the Sun in view, the
+            Sun's frame picks up the Sun's own orientation (~99° turn, 7.25° tilt). Both are runtime patches (toggles
+            under the 2D/3D buttons); neither is checked in a browser yet.
+          </p>
         </tab-page>
 
-        <tab-page title="User Guide" value="user-guide">
+        <tab-page
+          title="User Guide"
+          value="user-guide"
+        >
           <user-guide />
         </tab-page>
       </tabbed-sheet>
@@ -107,7 +218,7 @@
 
 <script setup lang="ts">
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ref, reactive, computed, onMounted, nextTick, watch, type Ref } from "vue";
+import { ref, reactive, computed, onMounted, nextTick, watch, shallowRef, type Ref } from "vue";
 import { useDisplay } from "vuetify";
 
 /* WWT imports */
@@ -122,9 +233,10 @@ import {
   WWTEngineStore,
   CreditLogos,
   IconButton,
+  SpeedControl,
 } from "@cosmicds/vue-toolkit";
 import { D2R, R2D, H2D, R2H, H2R, D2H } from "@wwtelescope/astro";
-import { AstroCalc, WWTControl, SpaceTimeController, Settings } from "@wwtelescope/engine";
+import { AstroCalc, WWTControl, SpaceTimeController, Settings, type OrbitLayer } from "@wwtelescope/engine";
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
 
 /* local components and composables */
@@ -134,6 +246,16 @@ import TabbedSheet from "./components/TabbedSheet.vue";
 import TabPage from "./components/TabPage.vue";
 import UserGuide from "./components/UserGuide.vue";
 import { watchWwtContainerSize } from "./utils/wwtContainerSize.ts";
+import LayerManagerPanel from "./components/LayerManagerPanel.vue";
+import OrbitComparison from "./components/OrbitComparison.vue";
+import OrbitalElementsEditor from "./components/OrbitalElementsEditor.vue";
+import { asteroidDefinitions } from "./asteroid_elements";
+import { addObject, addObjectAsChild, addAsteroidLayerFromMpc, removeObject } from "./createAsteroid";
+// Keeping these imports for potential future use but not calling them now
+// import { comparePositions, logPatchedOrientationMatrix, calculatePerihelionLon, computePerihelionDirection } from "./orbitComparison";
+import { show3dPoint } from "./spreadsheetLayer";
+import { addDebugLines, removeDebugLines } from "./wwt-hacks";
+import { setBasisVectorOrbitDraw, setSunEclipticFrameFix } from "./orbitPatches";
 // watchWwtContainerSize('.wwtelescope-component', '#main-content');
 
 type CameraParams = Omit<GotoRADecZoomParams, "instant">;
@@ -146,14 +268,8 @@ const { smAndDown } = useDisplay();
 
 const props = withDefaults(defineProps<WwtPlaygroundProps>(), {
   wwtNamespace: "wwt-playground",
-  initialCameraParams: () => {
-    const galacticCenter = AstroCalc.galacticToJ2000(0, 0);
-    return {
-      raRad: galacticCenter.RA * H2R,
-      decRad: galacticCenter.dec * D2R,
-      zoomDeg: 360,
-    };
-  },
+  // in 3D: look down from ecliptic north (the branch passed decRad: 90)
+  initialCameraParams: () => ({ raRad: 0, decRad: Math.PI / 2, zoomDeg: 120, rollRad: 0 }),
 });
 
 const store = engineStore();
@@ -200,6 +316,12 @@ onMounted(() => {
   store.waitForReady().then(async () => {
     skyBackgroundImagesets.forEach((iset) => backgroundImagesets.push(iset));
     // store.setBackgroundImageByName("SDSS");
+    store.setBackgroundImageByName("Solar System");
+    store.applySetting(["solarSystemOrbits", true]);
+    store.applySetting(["solarSystemMinorOrbits", false]);
+    store.applySetting(["solarSystemMinorPlanets", false]);
+    resetTime();
+    addAsteroidLayerFromMpc();
     store
       .gotoRADecZoom({
         ...props.initialCameraParams,
@@ -212,6 +334,81 @@ onMounted(() => {
 });
 
 const ready = computed(() => layersLoaded.value && positionSet.value);
+
+/* Asteroids: custom orbits from orbital elements */
+const sunEclipticFrameFix = ref(false);
+const basisVectorOrbitDraw = ref(false);
+const showDebugAxes = ref(true);
+const showElementsEditor = ref(true);
+const showOrbitComparison = ref(true);
+const showLayerManager = ref(false);
+const customObject = ref<string | null>("7085");
+const objectOrbitLayer = shallowRef<OrbitLayer | null>(null);
+
+const objectItems = [
+  { title: "none", value: null },
+  ...Object.entries(asteroidDefinitions).map(([key, def]) => ({ title: `${key} (${def.name})`, value: key })),
+];
+
+// 2025-Nov-20 12:00 TDB, the epoch of the 7085 elements
+const initTime = SpaceTimeController.julianToUtc(2461000.0);
+
+function resetTime() {
+  store.setClockSync(false);
+  store.setTime(initTime);
+}
+
+function switchTo3dView() {
+  store.setBackgroundImageByName("Solar System");
+}
+
+function switchTo2dView() {
+  store.setBackgroundImageByName("Digitized Sky Survey");
+}
+
+watch(sunEclipticFrameFix, setSunEclipticFrameFix);
+watch(basisVectorOrbitDraw, setBasisVectorOrbitDraw);
+
+// debug axes (wwt-hacks) plus unit points on the Horizons +x/+y/+z axes
+let debugPoints: ReturnType<typeof show3dPoint>[] = [];
+watch([layersLoaded, showDebugAxes], ([isReady, show], [wasReady, shown]) => {
+  if (!isReady) return;
+  if (show && !(wasReady && shown)) {
+    addDebugLines();
+    debugPoints = [
+      show3dPoint(1, 0, 0, { inputConvention: "horizons", name: "+x", colorHex: "#ff0000ff" }),
+      show3dPoint(0, 1, 0, { inputConvention: "horizons", name: "+y", colorHex: "#00ff00ff" }),
+      show3dPoint(0, 0, 1, { inputConvention: "horizons", name: "+z", colorHex: "#0000ffff" }),
+    ];
+  }
+  if (!show && wasReady && shown) {
+    removeDebugLines();
+    debugPoints.forEach((p) => p.remove());
+    debugPoints = [];
+  }
+});
+
+watch([layersLoaded, customObject], ([isReady, name]) => {
+  if (!isReady) return;
+  if (objectOrbitLayer.value) removeObject(objectOrbitLayer.value);
+  objectOrbitLayer.value = name === null ? null : (addObject(name, "#56e0f0ff") ?? null);
+  // addObjectAsChild(name, "Sun", "#56e0f0ff"); // child-frame orbit path (needs solarSystemMinorOrbits)
+});
+
+const formattedTime = computed(() =>
+  store.currentTime.toLocaleString(undefined, {
+    month: "short",
+    weekday: "short",
+    year: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    minute: "2-digit",
+    hour12: false,
+    second: "2-digit",
+    timeZoneName: "short",
+  }),
+);
 
 /* `isLoading` is a bit redundant here, but it could potentially have independent logic */
 const isLoading = computed(() => !ready.value);
@@ -504,6 +701,40 @@ The default DOM structure is basically
   #wwt-overlay {
     border: 3px solid aqua;
   }
+}
+
+#time {
+  color: white;
+  font-family: "Highway Gothic Narrow", sans-serif;
+  font-size: 2rem;
+  text-shadow: 2px 2px 4px #000000;
+}
+
+#Sky-SolarSystem-Toggle,
+.speed-control {
+  pointer-events: auto;
+}
+
+.asteroid-panel {
+  pointer-events: auto;
+  overflow-y: auto;
+  background-color: rgb(0 0 0 / 70%) !important;
+}
+
+#orbit-tools {
+  width: min(320px, 80vw);
+}
+
+.orbital-editor-panel,
+.layer-manager-panel {
+  width: min(400px, 90vw);
+  max-height: 60vh;
+}
+
+.elements-panel {
+  align-self: flex-start;
+  width: min(90vw, 960px);
+  max-height: 50vh;
 }
 
 #bottom-drawer {

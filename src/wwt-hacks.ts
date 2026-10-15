@@ -1,4 +1,12 @@
-import { WWTControl } from "@wwtelescope/engine";
+import {
+  Colors,
+  Coordinates,
+  Matrix3d,
+  SimpleLineList,
+  SpaceTimeController,
+  Vector3d,
+  WWTControl,
+} from "@wwtelescope/engine";
 import type { engineStore } from "@wwtelescope/engine-pinia";
 
 let wwtReady = false;
@@ -53,4 +61,46 @@ export function removeFromWWTRenderLoop(cb: () => void) {
   // begin removing items at idx, and remove just 1
   addedToFrame.splice(idx, 1);
   WWTControl.singleton.removeFrameCallback(cb);
+}
+
+// debug stuff: XYZ axes (red/green/blue) drawn every frame
+let debugAxes: [SimpleLineList, SimpleLineList, SimpleLineList] | null = null;
+
+function buildAxes(length = 1, alignEcliptic = false) {
+  const obliquityDeg = alignEcliptic ? Coordinates.meanObliquityOfEcliptic(SpaceTimeController.get_jNow()) : 0;
+  const mat = alignEcliptic ? Matrix3d._rotationX(-(obliquityDeg * Math.PI) / 180) : null;
+
+  const makeAxis = (a: Vector3d, b: Vector3d) => {
+    const list = new SimpleLineList();
+    list.set_depthBuffered(false); // set true if you want depth testing
+    if (mat) {
+      a = Vector3d._transformCoordinate(a, mat);
+      b = Vector3d._transformCoordinate(b, mat);
+    }
+    list.addLine(a, b);
+    return list;
+  };
+
+  return [
+    makeAxis(Vector3d.create(-length, 0, 0), Vector3d.create(length, 0, 0)),
+    makeAxis(Vector3d.create(0, -length, 0), Vector3d.create(0, length, 0)),
+    makeAxis(Vector3d.create(0, 0, -length), Vector3d.create(0, 0, length)),
+  ] as [SimpleLineList, SimpleLineList, SimpleLineList];
+}
+
+function drawDebugAxes() {
+  const rc = WWTControl.singleton.renderContext;
+  debugAxes?.[0].drawLines(rc, 1, Colors.get_red());
+  debugAxes?.[1].drawLines(rc, 1, Colors.get_green());
+  debugAxes?.[2].drawLines(rc, 1, Colors.get_blue());
+}
+
+export function addDebugLines() {
+  debugAxes = buildAxes(10, false);
+  addToWWTRenderLoop(drawDebugAxes);
+}
+
+export function removeDebugLines() {
+  removeFromWWTRenderLoop(drawDebugAxes);
+  debugAxes = null;
 }
