@@ -127,12 +127,7 @@ import { D2R, R2D, H2D, R2H, H2R, D2H } from "@wwtelescope/astro";
 import { AstroCalc, WWTControl, SpaceTimeController, Settings } from "@wwtelescope/engine";
 import { SolarSystemObjects } from "@wwtelescope/engine-types";
 
-/* local components and composables */
-import WebGlTest from "./components/WebGlTest.vue";
-import SplashScreen from "./components/SplashScreen.vue";
-import TabbedSheet from "./components/TabbedSheet.vue";
-import TabPage from "./components/TabPage.vue";
-import UserGuide from "./components/UserGuide.vue";
+
 import { watchWwtContainerSize } from "./utils/wwtContainerSize.ts";
 // watchWwtContainerSize('.wwtelescope-component', '#main-content');
 
