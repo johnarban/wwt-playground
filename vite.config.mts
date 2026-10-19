@@ -2,6 +2,8 @@
 import { fileURLToPath, URL } from 'node:url';
 import Vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
+import Components from 'unplugin-vue-components/vite';
+
 
 // Plugins
 import Vuetify, { transformAssetUrls } from 'vite-plugin-vuetify';
@@ -19,6 +21,20 @@ export default defineConfig({
     // https://github.com/vuetifyjs/vuetify-loader/tree/master/packages/vite-plugin#readme
     Vuetify({
       autoImport: true,
+    }),
+    Components({
+      dts: true,
+      resolvers: [
+        // define in PascalCase version of the kebab-case that is used in template
+        (name) => {
+          if (name === 'WwtLoader') {
+            return { from: '@/components/Loader.vue' };
+          }
+          if (name === 'WebglTest') {
+            return { from: '@/components/WebGlTest.vue' };
+          }
+        },
+      ],
     }),
     // Only included when LEGACY=true (i.e. `yarn build-legacy`).
     // Generates a legacy bundle (SystemJS + polyfills) for browsers that don't
